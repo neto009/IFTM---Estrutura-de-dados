@@ -202,7 +202,7 @@ function addNote(title, content, files='') { notes.push({title,content,files}); 
   connector(s,740,593,814,593,{arrow:true});
   connector(s,1090,593,1160,593,{arrow:true});
   connector(s,1450,593,1450,466,{color:C.gold,sw:3});connector(s,1450,466,930,466,{color:C.gold,sw:3});connector(s,930,466,930,455,{color:C.gold,sw:3,arrow:true});
-  node(s,96,365,230,90,'Produtor\nevento 401…406',{stroke:C.gold,color:C.gold,fs:18});
+  node(s,96,365,230,90,'Produtor · IDs\n401, 402, 401\n404, 405, 406',{stroke:C.gold,color:C.gold,fs:16});
   node(s,408,350,242,120,'offer()\nconseguiu?',{geom:'diamond',fill:C.bg2,stroke:C.aqua,color:C.ink,fs:18});
   node(s,780,365,310,90,'Fila limitada\nArrayBlockingQueue (3)',{stroke:C.aqua,color:C.aqua,fs:19});
   node(s,420,548,320,90,'NÃO · adiamentos + 1\nliberar espaço',{stroke:C.coral,color:C.coral,fs:17});
