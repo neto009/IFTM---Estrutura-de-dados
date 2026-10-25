@@ -1,0 +1,8 @@
+out/
+out-testes/
+*.class
+.venv/
+__pycache__/
+*.pyc
+lib/*.jar
+lib/*.part

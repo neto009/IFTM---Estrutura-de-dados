@@ -1,0 +1,7 @@
+# Versões fixas para reproduzir os resultados da oficina (Python 3.10–3.13).
+numpy==2.2.6
+scipy==1.15.3
+scikit-learn==1.7.2
+hdbscan==0.8.41
+joblib==1.5.2
+threadpoolctl==3.6.0
