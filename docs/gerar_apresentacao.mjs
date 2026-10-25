@@ -4,7 +4,10 @@ import os from 'node:os';
 import { execFileSync } from 'node:child_process';
 
 const OUT = path.resolve('docs');
-const PHOTO_PATH = process.env.SOLANGE_PHOTO_PATH ? path.resolve(process.env.SOLANGE_PHOTO_PATH) : '';
+const HERO_PATH = path.join(OUT,'assets','hero-data-structures.png');
+const HDBSCAN_IMAGE_PATH = path.join(OUT,'assets','hdbscan-feature-illustration.png');
+const DEFAULT_PHOTO_PATH = path.join(OUT,'assets','solange-brasileiro.jpeg');
+const PHOTO_PATH = process.env.SOLANGE_PHOTO_PATH ? path.resolve(process.env.SOLANGE_PHOTO_PATH) : fs.existsSync(DEFAULT_PHOTO_PATH) ? DEFAULT_PHOTO_PATH : '';
 const PHOTO_EXT = PHOTO_PATH ? path.extname(PHOTO_PATH).slice(1).toLowerCase() : '';
 if (PHOTO_PATH && !['jpg','jpeg','png'].includes(PHOTO_EXT)) throw new Error('A foto deve estar em JPG ou PNG.');
 const W = 1600, H = 900, EMU = 7620;
@@ -16,9 +19,16 @@ const C = {
 const slides = [];
 const notes = [];
 function rect(s,x,y,w,h,fill,opts={}) { s.blocks.push({type:'rect',x,y,w,h,fill,stroke:opts.stroke||'none',sw:opts.sw||0,r:opts.r??18,alpha:opts.alpha??100000}); }
-function photo(s,x,y,w,h,file){ s.blocks.push({type:'image',x,y,w,h,file,ext:path.extname(file).slice(1).toLowerCase()}); }
+function image(s,x,y,w,h,file,{fit='contain',alt='Ilustração de estruturas de dados',stroke='none',sw=0,r=0,name='Ilustração'}={}) {
+  s.blocks.push({type:'image',x,y,w,h,file,ext:path.extname(file).slice(1).toLowerCase(),fit,alt,stroke,sw,r,name});
+}
+function photo(s,x,y,w,h,file){ image(s,x,y,w,h,file,{fit:'cover',alt:'Foto de Solange Brasileiro',stroke:C.aqua,sw:2,r:22,name:'Foto de Solange'}); }
 function txt(s,x,y,w,h,text,opts={}) { s.blocks.push({type:'text',x,y,w,h,text,fs:opts.fs||26,color:opts.color||C.ink,bold:opts.bold||false,font:opts.font||'Aptos',align:opts.align||'left',valign:opts.valign||'top',lh:opts.lh||1.14,tracking:opts.tracking||0}); }
 function rule(s,x,y,w,color=C.stroke,h=2) { rect(s,x,y,w,h,color,{r:0}); }
+function connector(s,x1,y1,x2,y2,{color=C.quiet,sw=3,arrow=false}={}) { s.blocks.push({type:'connector',x1,y1,x2,y2,color,sw,arrow}); }
+function node(s,x,y,w,h,label,{geom='roundRect',fill=C.card2,stroke=C.stroke,color=C.ink,sw=2,fs=19,bold=true}={}) {
+  s.blocks.push({type:'node',x,y,w,h,text:label,geom,fill,stroke,sw,color,fs,bold,align:'center',valign:'middle',font:'Aptos',lh:1.05});
+}
 function pill(s,x,y,w,label,color=C.gold) {
   rect(s,x,y,w,34,C.card2,{r:17,stroke:color,sw:1,alpha:100000});
   txt(s,x+13,y+2,w-26,30,label,{fs:16,color,bold:true,align:'center',valign:'middle'});
@@ -68,13 +78,8 @@ function addNote(title, content, files='') { notes.push({title,content,files}); 
     const size=(row+col)%3===0?48:32;
     rect(s,x,y,size,size,'none',{r:0,stroke:C.stroke,sw:2,alpha:(row+col)%3===0?30000:20000});
   }
-  // Graphic: structures become connected parts of a system.
-  rect(s,1040,252,420,360,C.bg2,{r:32,stroke:C.stroke,sw:1});
-  txt(s,1082,283,330,28,'UM SISTEMA, VÁRIAS FORMAS DE ACESSAR',{fs:15,color:C.aqua,bold:true});
-  const nodes=[['LISTA',1078,365,C.gold],['FILA',1265,365,C.aqua],['GRAFO',1168,495,C.coral]];
-  for(const [label,x,y,col] of nodes){rect(s,x,y,150,70,C.card2,{r:18,stroke:col,sw:2});txt(s,x,y+5,150,58,label,{fs:22,color:col,bold:true,align:'center',valign:'middle'});}
-  rule(s,1228,398,37,C.quiet,3); txt(s,1232,386,28,30,'›',{fs:28,color:C.quiet,bold:true,align:'center'});
-  rule(s,1196,437,3,C.quiet,45); txt(s,1183,465,30,30,'⌄',{fs:24,color:C.quiet,bold:true,align:'center'});
+  image(s,900,258,604,340,HERO_PATH,{alt:'Ilustração de dados organizados em estruturas e conectados a uma árvore, fila e grafo.'});
+  txt(s,940,616,550,32,'COLEÇÕES  ·  FILAS  ·  ÁRVORES  ·  GRAFOS',{fs:16,color:C.aqua,bold:true,align:'center'});
   txt(s,96,95,700,30,'MINICURSO  ·  INSTITUTO FEDERAL  ·  UBERLÂNDIA',{fs:18,color:C.aqua,bold:true});
   txt(s,96,232,850,188,'Estruturas de dados\nno mundo real',{fs:76,bold:true,lh:1.0});
   txt(s,100,445,790,92,'Do backlog à busca por similaridade —\ncom exemplos de sistemas corporativos.',{fs:29,color:C.muted,lh:1.22});
@@ -113,14 +118,18 @@ function addNote(title, content, files='') { notes.push({title,content,files}); 
 // 04 — Escolha
 {
   const s=base('ANTES DO CÓDIGO','Qual operação precisa ser simples e previsível?','A regra de acesso orienta a estrutura; o cenário orienta a regra.');
-  const items=[
-    ['CHEGOU PRIMEIRO','retirar na mesma ordem','Queue · FIFO',C.gold],
-    ['QUAL É O ID?','achar sem varrer a lista','HashMap · chave → valor',C.aqua],
-    ['QUAL É A JANELA?','percorrer do início ao fim','TreeMap · subMap',C.coral],
-    ['QUEM DEPENDE DE QUEM?','seguir conexões direcionadas','Grafo · BFS / DFS',C.lime]
+  connector(s,800,385,800,427,{arrow:true});
+  connector(s,256,427,1312,427,{color:C.stroke,sw:3});
+  [256,608,960,1312].forEach(cx=>connector(s,cx,427,cx,478,{arrow:true}));
+  node(s,585,277,430,108,'O que você precisa fazer?',{geom:'diamond',fill:C.bg2,stroke:C.aqua,color:C.ink,fs:22});
+  const choices=[
+    ['Chegada → saída','Queue · FIFO',C.gold],
+    ['Buscar por ID','HashMap',C.aqua],
+    ['Consultar uma faixa','TreeMap · subMap',C.coral],
+    ['Seguir dependências','Grafo · BFS / DFS',C.lime]
   ];
-  items.forEach((a,i)=>{const x=96+(i%2)*728,y=294+Math.floor(i/2)*212;rect(s,x,y,680,184,C.card,{r:22,stroke:C.stroke,sw:1});pill(s,x+24,y+22,50,String(i+1).padStart(2,'0'),a[3]);txt(s,x+96,y+22,545,36,a[0],{fs:17,color:a[3],bold:true});txt(s,x+96,y+62,545,42,a[1],{fs:25,bold:true});txt(s,x+96,y+119,545,34,a[2],{fs:20,color:C.muted});});
-  txt(s,96,746,1408,36,'Uma aplicação costuma combinar estruturas diferentes no mesmo fluxo.',{fs:21,color:C.gold,bold:true,align:'center'});
+  choices.forEach((a,i)=>{const x=96+i*352;node(s,x,478,320,112,`${a[0]}\n${a[1]}`,{fill:C.card,stroke:a[2],color:a[2],fs:20});});
+  txt(s,96,650,1408,55,'Na prática, um serviço combina estruturas: escolha cada uma pela operação que mais importa.',{fs:21,color:C.gold,bold:true,align:'center',valign:'middle'});
   addNote('Escolha pela operação','Antes de escolher a classe, pergunte: inserir, remover, localizar por chave, priorizar, buscar uma faixa ou percorrer relações? Depois considere custo, ordem garantida, volume, mutabilidade e concorrência. Essa pergunta reaparece em todos os exemplos.','README.md · docs/roteiro-java.md');
 }
 // 05 — Lista e prioridade
@@ -168,30 +177,64 @@ function addNote(title, content, files='') { notes.push({title,content,files}); 
 }
 // 08 — TreeMap
 {
-  const s=base('FUNDAMENTO · ÁRVORE ORDENADA','Uma linha do tempo permite consultar uma faixa','TreeMap ordena timestamps; List guarda vários logs no mesmo instante.');
-  rect(s,96,286,1408,142,C.card,{r:22,stroke:C.stroke,sw:1});
-  rule(s,172,361,1250,C.quiet,3);
-  const ts=[['12:00:00','pedido recebido',200,C.aqua],['12:00:30','timeout / token expirado',620,C.coral],['12:00:45','gateway lento',1060,C.gold],['12:01:00','pedido confirmado',1370,C.quiet]];
-  ts.forEach(a=>{rect(s,a[2]-8,352,18,18,a[3],{r:9});txt(s,a[2]-95,306,190,28,a[0],{fs:16,color:C.ink,bold:true,align:'center'});txt(s,a[2]-130,382,260,32,a[1],{fs:15,color:a[3],align:'center'});});
-  rect(s,172,447,1186,9,C.gold,{r:4,alpha:32000});
-  txt(s,96,484,530,43,'CONSULTA  [12:00:00, 12:01:00)',{fs:22,color:C.gold,bold:true});
-  metric(s,96,548,230,112,'4','registros na janela',C.aqua);metric(s,346,548,230,112,'2','erros encontrados',C.coral);
-  codeBox(s,635,484,869,176,'OPERAÇÃO','subMap(inicio, true, fim, false)\nTreeMap<Instant, List<RegistroLog>>',C.aqua,19);
-  txt(s,96,690,1408,44,'O fim exclusivo evita repetir o registro de fronteira em janelas consecutivas. Custo: O(log t + k).',{fs:19,color:C.muted,align:'center'});
-  addNote('Árvore e janela temporal','LinhaDoTempoLogs usa NavigableMap/TreeMap com Instant como chave e List<RegistroLog> como valor. Os dados de demonstração chegam fora de ordem e há dois registros em 12:00:30. subMap(start,true,end,false) inclui o início, exclui o fim e depois flatMap combina as listas. O resultado é um snapshot, não uma visão mutável do mapa. A janela retorna quatro registros, dois erros.','src/oficina/casos/LinhaDoTempoLogs.java · src/oficina/demonstracoes/DadosOficina.java');
+  const s=base('FUNDAMENTO · ÁRVORE ORDENADA','Uma árvore ajuda a encontrar uma janela de tempo','TreeMap mantém chaves ordenadas; cada timestamp aponta para uma lista de logs.');
+  rect(s,96,286,840,424,C.card,{r:22,stroke:C.stroke,sw:1});
+  txt(s,126,305,780,28,'BUSCA POR TIMESTAMP · VISTA CONCEITUAL',{fs:15,color:C.aqua,bold:true});
+  connector(s,500,405,290,482,{color:C.quiet,sw:3});connector(s,610,405,726,482,{color:C.quiet,sw:3});connector(s,726,558,726,604,{color:C.quiet,sw:3});
+  node(s,420,336,240,72,'12:00:30\n2 logs',{stroke:C.aqua,color:C.aqua,fs:18});
+  node(s,160,482,260,76,'12:00:00\npedido recebido',{stroke:C.gold,color:C.gold,fs:17});
+  node(s,596,482,260,76,'12:00:45\ngateway lento',{stroke:C.aqua,color:C.aqua,fs:17});
+  node(s,596,604,260,76,'12:01:00\npedido confirmado',{stroke:C.quiet,color:C.muted,fs:17});
+  rect(s,968,286,536,424,C.bg2,{r:22,stroke:C.stroke,sw:1});
+  txt(s,1000,310,472,30,'BUSCAR  [INÍCIO, FIM)',{fs:16,color:C.gold,bold:true});
+  txt(s,1000,360,470,76,'subMap(inicio, true,\nfim, false)',{fs:22,color:C.ink,bold:true,font:'Menlo',lh:1.3});
+  metric(s,1000,458,140,100,'3','timestamps',C.aqua);metric(s,1150,458,140,100,'4','registros',C.gold);metric(s,1300,458,172,100,'2','erros',C.coral);
+  txt(s,1000,585,470,86,'Inclui 12:00:00.\nExclui 12:01:00 para não repetir a fronteira.',{fs:17,color:C.muted,lh:1.35});
+  txt(s,96,744,1408,42,'O desenho ensina a ordem da busca; não representa os nós internos da árvore balanceada do Java.',{fs:18,color:C.quiet,align:'center'});
+  addNote('Árvore e janela temporal','LinhaDoTempoLogs usa NavigableMap/TreeMap com Instant como chave e List<RegistroLog> como valor. Os dados de demonstração chegam fora de ordem e há dois registros em 12:00:30. subMap(start,true,end,false) inclui o início, exclui o fim e depois flatMap combina as listas. O resultado é um snapshot, não uma visão mutável do mapa. A janela retorna quatro registros, dois erros. O desenho mostra a ordem conceitual das chaves, não a estrutura interna vermelho-preta do TreeMap.','src/oficina/casos/LinhaDoTempoLogs.java · src/oficina/demonstracoes/DadosOficina.java');
 }
 // 09 — Mensageria
 {
-  const s=base('SISTEMAS · EVENTOS','Fila limitada, duplicidade e falha são parte do fluxo','O consumidor precisa preservar o estado mesmo quando a entrega se repete.');
-  const stages=[['PRODUTOR','401 · 402 · 401\n404 · 405 · 406',C.gold],['BUFFER','capacidade 3\nArrayBlockingQueue',C.aqua],['CONSUMIDOR','pedido por ID\nevento aplicado?',C.coral],['ESTADO','PAGO / falha\ncontadores',C.lime]];
-  stages.forEach((a,i)=>{const x=96+i*360;rect(s,x,320,310,196,C.card,{r:20,stroke:C.stroke,sw:1});pill(s,x+20,338,Math.max(100,a[0].length*13),a[0],a[2]);txt(s,x+22,393,266,78,a[1],{fs:21,color:C.ink,bold:true,lh:1.35,align:'center',valign:'middle'});if(i<3)txt(s,x+312,384,45,54,'→',{fs:34,color:C.quiet,bold:true,align:'center',valign:'middle'});});
-  rect(s,96,558,1408,144,C.bg2,{r:22,stroke:C.stroke,sw:1});
-  metric(s,120,574,172,100,'6','entregas',C.aqua);metric(s,308,574,172,100,'4','aplicadas',C.lime);metric(s,496,574,172,100,'1','duplicada',C.gold);metric(s,684,574,172,100,'1','falha',C.coral);metric(s,872,574,172,100,'3','adiamentos',C.aqua);
-  txt(s,1080,585,385,45,'401 é deduplicado.\n404 (pedido inexistente) vai à análise.',{fs:17,color:C.muted,lh:1.35});
-  txt(s,96,741,1408,34,'HashSet em memória dá idempotência local; não garante transação distribuída.',{fs:19,color:C.gold,bold:true,align:'center'});
-  addNote('Eventos e idempotência','ProcessamentoEventos simula produtor e consumidor em uma thread com fila ArrayBlockingQueue de capacidade 3. O evento 401 é entregue duas vezes; HashSet reconhece a reaplicação. O 404 aponta para PED-999, inexistente, e segue para uma fila de falhas. O exemplo conta seis entregas: quatro aplicadas, uma duplicada, uma falha e três adiamentos. Marcar o ID depois do sucesso permite que uma falha não bloqueie tentativa futura, mas Map/Set em memória não são transacionais nem persistentes.','src/oficina/demonstracoes/ProcessamentoEventos.java · src/oficina/casos/ConsumidorPagamentos.java');
+  const s=base('SISTEMAS · EVENTOS','O que acontece quando a fila fica cheia?','O produtor usa offer: se não houver vaga, processa um evento e tenta inserir de novo.');
+  connector(s,326,410,408,410,{arrow:true});
+  connector(s,650,410,780,410,{arrow:true});
+  connector(s,530,470,530,548,{arrow:true});
+  connector(s,740,593,814,593,{arrow:true});
+  connector(s,1090,593,1160,593,{arrow:true});
+  connector(s,1450,593,1450,466,{color:C.gold,sw:3});connector(s,1450,466,930,466,{color:C.gold,sw:3});connector(s,930,466,930,455,{color:C.gold,sw:3,arrow:true});
+  node(s,96,365,230,90,'Produtor\nevento 401…406',{stroke:C.gold,color:C.gold,fs:18});
+  node(s,408,350,242,120,'offer()\nconseguiu?',{geom:'diamond',fill:C.bg2,stroke:C.aqua,color:C.ink,fs:18});
+  node(s,780,365,310,90,'Fila limitada\nArrayBlockingQueue (3)',{stroke:C.aqua,color:C.aqua,fs:19});
+  node(s,420,548,320,90,'NÃO · adiamentos + 1\nliberar espaço',{stroke:C.coral,color:C.coral,fs:17});
+  node(s,814,548,276,90,'Consumir um\nevento da fila',{stroke:C.gold,color:C.gold,fs:18});
+  node(s,1160,548,290,90,'Enfileirar o evento\nque aguardava',{stroke:C.lime,color:C.lime,fs:17});
+  txt(s,685,374,78,30,'SIM',{fs:14,color:C.lime,bold:true,align:'center'});
+  rect(s,96,694,1408,82,C.bg2,{r:18,stroke:C.stroke,sw:1});
+  metric(s,124,704,190,62,'3','capacidade',C.aqua);metric(s,335,704,190,62,'6','eventos',C.gold);metric(s,546,704,190,62,'3','adiamentos',C.coral);
+  txt(s,780,708,684,54,'Este exemplo alterna produtor e consumidor em uma thread; não é um broker distribuído.',{fs:17,color:C.muted,align:'center',valign:'middle'});
+  addNote('Produtor e fila limitada','ProcessamentoEventos usa ArrayBlockingQueue de capacidade 3. Cada evento tenta entrar com offer. Quando a fila está cheia, o produtor conta um adiamento, remove e processa o próximo evento para liberar uma posição, e então enfileira o evento que aguardava. Os seis IDs de demonstração provocam três adiamentos. A simulação alterna produtor e consumidor sequencialmente em uma thread.','src/oficina/demonstracoes/ProcessamentoEventos.java');
 }
-// 10 — Grafo
+// 10 — Consumidor de eventos
+{
+  const s=base('SISTEMAS · CONSUMIDOR','Antes de alterar o pedido, valide o evento','HashSet protege contra repetição; HashMap localiza o pedido; falhas ficam disponíveis para análise.');
+  connector(s,316,466,396,466,{arrow:true});
+  connector(s,636,438,768,345,{color:C.lime,sw:3,arrow:true});
+  connector(s,636,492,768,590,{color:C.gold,sw:3,arrow:true});
+  connector(s,1018,560,1130,444,{color:C.lime,sw:3,arrow:true});
+  connector(s,1018,616,1130,650,{color:C.coral,sw:3,arrow:true});
+  node(s,96,421,220,90,'poll()\nrecebe evento',{stroke:C.aqua,color:C.aqua,fs:19});
+  node(s,396,406,240,120,'ID já foi\naplicado?',{geom:'diamond',fill:C.bg2,stroke:C.gold,color:C.ink,fs:19});
+  node(s,768,300,250,90,'SIM · duplicado\nnão reaplicar',{stroke:C.gold,color:C.gold,fs:18});
+  node(s,768,530,250,120,'NÃO · pedido\nexiste?',{geom:'diamond',fill:C.bg2,stroke:C.aqua,color:C.ink,fs:18});
+  node(s,1130,390,344,96,'SIM · status PAGO\nregistrar ID aplicado',{stroke:C.lime,color:C.lime,fs:18});
+  node(s,1130,604,344,96,'NÃO · fila de falhas\npara inspeção',{stroke:C.coral,color:C.coral,fs:18});
+  txt(s,666,354,84,28,'SIM',{fs:14,color:C.lime,bold:true,align:'center'});txt(s,670,524,74,28,'NÃO',{fs:14,color:C.gold,bold:true,align:'center'});
+  txt(s,1024,464,80,28,'SIM',{fs:14,color:C.lime,bold:true,align:'center'});txt(s,1028,635,74,28,'NÃO',{fs:14,color:C.coral,bold:true,align:'center'});
+  rect(s,96,736,1408,58,C.bg2,{r:16,stroke:C.stroke,sw:1});
+  txt(s,128,744,1344,42,'6 recebidos  ·  4 aplicados  ·  1 duplicado  ·  1 falha  ·  3 adiamentos na produção',{fs:19,color:C.ink,bold:true,align:'center',valign:'middle'});
+  addNote('Consumidor e idempotência','ConsumidorPagamentos procura o ID aplicado em um HashSet. Se já foi visto, retorna DUPLICADO. Caso contrário, usa o HashMap de pedidos para localizar a entidade: pedido inexistente vira FALHA e é preservado na fila de análise; pedido existente muda para PAGO e o ID é marcado após o sucesso. A demonstração conta seis entregas, quatro aplicadas, uma duplicada e uma falha. O conjunto e o mapa são locais à execução e não formam uma transação distribuída.','src/oficina/casos/ConsumidorPagamentos.java · src/oficina/demonstracoes/ProcessamentoEventos.java');
+}
+// 11 — Grafo
 {
   const s=base('SISTEMAS · GRAFOS','Uma aresta direcionada responde quem pode ser afetado','No exemplo: fornecedor → consumidor. A busca segue esse sentido.');
   rect(s,96,286,888,430,C.card,{r:22,stroke:C.stroke,sw:1});
@@ -228,20 +271,38 @@ function addNote(title, content, files='') { notes.push({title,content,files}); 
   txt(s,96,753,1408,32,'Este repositório para na recuperação; não chama um modelo e não gera a resposta.',{fs:18,color:C.gold,bold:true,align:'center'});
   addNote('RAG e busca lexical','python/rag.py cria um índice TF-IDF dos artigos, com matriz CSR esparsa. A pergunta é transformada com o mesmo vocabulário; cosseno calcula escore e argsort escolhe os melhores. Para a pergunta do exemplo, D2 (“Pagamento e situação do pedido”) e D1 (“Acompanhamento de pedidos”) aparecem primeiro. montar_contexto reúne textos para uma geração posterior, que não está implementada neste repositório.','python/rag.py');
 }
-// 13 — HDBSCAN: dados e features
+// 13 — Visão geral do pipeline HDBSCAN
+{
+  const s=base('IA · HDBSCAN DE PONTA A PONTA','Do registro ao cluster: nove etapas','Cada estrutura alimenta a próxima; os rótulos continuam alinhados às linhas A–I.');
+  const xs=[96,379,662,945,1228], top=315, bottom=530, w=240, h=112;
+  for(let i=0;i<4;i++) connector(s,xs[i]+w,top+h/2,xs[i+1],top+h/2,{color:C.quiet,sw:3,arrow:true});
+  connector(s,xs[4]+w/2,top+h,xs[4]+w/2,504,{color:C.quiet,sw:3});connector(s,xs[4]+w/2,504,xs[4]+w/2,bottom,{color:C.quiet,sw:3,arrow:true});
+  for(let i=4;i>1;i--) connector(s,xs[i],bottom+h/2,xs[i-1]+w,bottom+h/2,{color:C.quiet,sw:3,arrow:true});
+  connector(s,xs[1],bottom+h/2,xs[0]+w,bottom+h/2,{color:C.lime,sw:3,arrow:true});
+  const topStages=[['01 · REGISTROS','9 objetos → ndarray\n(9, 2) padronizado'],['02 · DISTÂNCIAS','pairwise distances\nmatriz 9 × 9'],['03 · VIZINHOS','KDTree\ncore distances'],['04 · PESOS','mutual reachability\nmatriz CSR'],['05 · MST','8 arestas\nsem ciclos']];
+  topStages.forEach((a,i)=>{const col=[C.gold,C.aqua,C.gold,C.coral,C.aqua][i];node(s,xs[i],top,w,h,`${a[0]}\n${a[1]}`,{fill:C.card,stroke:col,color:C.ink,fs:16});});
+  const bottomStages=[['06 · LINKAGE','fusões\npor peso'],['07 · CONDENSAR','árvore + EOM\nestabilidade'],['08 · RÓTULOS','clusters\ne ruído'],['09 · COMPARAR','HDBSCAN.fit\nAPI pública']];
+  [4,3,2,1].forEach((slot,j)=>{const a=bottomStages[j],col=[C.gold,C.coral,C.lime,C.aqua][j];node(s,xs[slot],bottom,w,h,`${a[0]}\n${a[1]}`,{fill:C.card,stroke:col,color:C.ink,fs:16});});
+  node(s,xs[0],bottom,w,h,'SAÍDA\n4 IAM · 4 pagamentos\n1 ponto isolado',{fill:C.bg2,stroke:C.lime,color:C.lime,fs:16});
+  txt(s,96,706,1408,52,'O exemplo abre as estruturas para estudo e compara o resultado com HDBSCAN.fit na etapa 9.',{fs:20,color:C.muted,align:'center',valign:'middle'});
+  addNote('Visão geral do HDBSCAN','Apresente primeiro o mapa do algoritmo, antes de abrir cada etapa. O código parte de objetos Incidente, prepara duas features, mede pares e vizinhanças, ajusta pesos pela densidade, reduz o grafo à MST, constrói fusões, condensa a árvore e escolhe grupos persistentes. A etapa final compara os rótulos com a API pública HDBSCAN.fit.','python/hdbscan_exemplo.py · docs/roteiro-hdbscan.md');
+}
+// 14 — HDBSCAN: dados e features
 {
   const s=base('HDBSCAN · PREPARAR A ENTRADA','Primeiro defina o que cada ponto significa','Nove incidentes fictícios; somente duas medidas numéricas entram no agrupamento.');
   rect(s,96,286,760,432,C.card,{r:22,stroke:C.stroke,sw:1});
   txt(s,128,308,690,30,'REGISTRO DE NEGÓCIO  →  FEATURE NUMÉRICA',{fs:16,color:C.aqua,bold:true});
   const rows=[['A–D','IAM','~1 hora · 4–7 usuários',C.aqua],['E–H','Pagamentos','~5 horas · 47–55 usuários',C.gold],['I','Plataforma','24 horas · 500 usuários',C.coral]];
   rows.forEach((r,i)=>{const y=366+i*78;rect(s,130,y,58,44,r[3],{r:12});txt(s,130,y+3,58,36,r[0],{fs:18,color:C.bg,bold:true,align:'center',valign:'middle'});txt(s,212,y,190,36,r[1],{fs:19,bold:true,valign:'middle'});txt(s,404,y,395,36,r[2],{fs:17,color:C.muted,valign:'middle'});});
-  txt(s,130,624,680,55,'Resumo, grupo e número identificam o chamado; não são features.',{fs:18,color:C.gold,bold:true});
-  codeBox(s,900,286,604,200,'DUAS COLUNAS','[horas_para_resolver,\n usuarios_afetados]  →  StandardScaler',C.aqua,18);
-  metric(s,900,516,188,112,'9 × 2','ndarray float64',C.aqua);metric(s,1098,516,188,112,'A–I','índice ↔ ticket',C.gold);metric(s,1296,516,188,112,'2–9','min_cluster_size',C.coral);
-  txt(s,900,666,604,40,'Padronizar aproxima as escalas de horas e usuários.',{fs:17,color:C.muted,align:'center'});
+  txt(s,130,620,680,32,'Features: [horas, usuários]  →  StandardScaler',{fs:18,color:C.gold,bold:true});
+  txt(s,130,660,680,32,'Resumo, grupo e número identificam; não entram no cálculo.',{fs:16,color:C.muted});
+  image(s,872,310,620,258,HDBSCAN_IMAGE_PATH,{alt:'Incidentes passam por normalização e se separam em dois grupos densos, com um ponto isolado.'});
+  txt(s,900,572,564,24,'ILUSTRAÇÃO CONCEITUAL · NÃO É UM GRÁFICO DOS DADOS',{fs:13,color:C.quiet,bold:true,align:'center'});
+  metric(s,900,615,180,94,'9 × 2','ndarray',C.aqua);metric(s,1092,615,180,94,'A–I','índice ↔ ticket',C.gold);metric(s,1284,615,180,94,'2','features',C.coral);
+  txt(s,96,753,1408,32,'Padronizar aproxima as escalas de horas e usuários.',{fs:17,color:C.muted,align:'center'});
   addNote('HDBSCAN: entrada','python/hdbscan_exemplo.py cria dataclass Incidente com número, grupo, resumo, horas e usuários. Só horas e usuários viram features. A matriz é padronizada com StandardScaler para não comparar escalas brutas distintas; A–I mantêm o vínculo com tickets. O scaler deve ser ajustado no histórico e reutilizado em lotes reais; extremos podem influenciá-lo.','python/hdbscan_exemplo.py · docs/roteiro-hdbscan.md');
 }
-// 14 — HDBSCAN: distâncias e KDTree
+// 15 — HDBSCAN: distâncias e KDTree
 {
   const s=base('HDBSCAN · ETAPAS 2–3','Todas as distâncias; depois, a vizinhança local','A matriz vê todos os pares. A KDTree expõe os vizinhos mais próximos.');
   rect(s,96,286,664,420,C.card,{r:22,stroke:C.stroke,sw:1});
@@ -249,10 +310,17 @@ function addNote(title, content, files='') { notes.push({title,content,files}); 
   txt(s,148,363,560,118,'d(A,B) = 0.032\nd(A,I) = 4.708\nd(i,i) = 0',{fs:24,color:C.ink,font:'Menlo',lh:1.4});
   metric(s,128,541,190,112,'81','células · O(n²)',C.gold);metric(s,332,541,190,112,'0','diagonal',C.aqua);metric(s,536,541,190,112,'simétrica','A↔B',C.coral);
   rect(s,796,286,708,420,C.bg2,{r:22,stroke:C.stroke,sw:1});
-  txt(s,830,308,640,30,'KDTREE.QUERY(k=3) COM min_samples=2',{fs:16,color:C.gold,bold:true});
-  txt(s,830,365,620,72,'O próprio ponto + 2 vizinhos externos',{fs:22,bold:true});
-  txt(s,830,453,620,93,'core(A) = 0.0299\ncore(I) = 4.0621',{fs:23,color:C.aqua,font:'Menlo',lh:1.4});
-  txt(s,830,574,620,78,'I precisa alcançar bem mais longe para encontrar vizinhos: região esparsa.',{fs:18,color:C.muted,lh:1.3});
+  txt(s,830,305,640,28,'KDTREE · get_arrays() · 7 NÓS',{fs:15,color:C.gold,bold:true});
+  connector(s,1150,402,1150,422,{color:C.quiet,sw:2});connector(s,945,422,1355,422,{color:C.quiet,sw:2});
+  connector(s,945,422,945,445,{color:C.aqua,sw:2,arrow:true});connector(s,1355,422,1355,445,{color:C.gold,sw:2,arrow:true});
+  connector(s,945,505,945,526,{color:C.quiet,sw:2});connector(s,870,526,1090,526,{color:C.quiet,sw:2});connector(s,870,526,870,547,{color:C.aqua,sw:2,arrow:true});connector(s,1090,526,1090,547,{color:C.aqua,sw:2,arrow:true});
+  connector(s,1355,505,1355,526,{color:C.quiet,sw:2});connector(s,1270,526,1440,526,{color:C.quiet,sw:2});connector(s,1270,526,1270,547,{color:C.gold,sw:2,arrow:true});connector(s,1440,526,1440,547,{color:C.gold,sw:2,arrow:true});
+  node(s,1060,346,180,56,'0 · [0:9)',{stroke:C.quiet,color:C.ink,fs:17});
+  node(s,850,445,190,60,'1 · [0:4)',{stroke:C.aqua,color:C.aqua,fs:16});node(s,1260,445,190,60,'2 · [4:9)',{stroke:C.gold,color:C.gold,fs:16});
+  node(s,800,547,140,66,'3 · [0:2)\nfolha',{stroke:C.aqua,color:C.aqua,fs:15});node(s,1020,547,140,66,'4 · [2:4)\nfolha',{stroke:C.aqua,color:C.aqua,fs:15});
+  node(s,1200,547,140,66,'5 · [4:6)\nfolha',{stroke:C.gold,color:C.gold,fs:15});node(s,1380,547,120,66,'6 · [6:9)\nfolha',{stroke:C.gold,color:C.gold,fs:15});
+  txt(s,830,620,640,34,'[início:fim) recorta o array de índices interno da árvore.',{fs:15,color:C.muted,align:'center'});
+  txt(s,830,654,640,42,'query k=3 inclui o próprio ponto + 2 vizinhos.  core(A)=0.0299 · core(I)=4.0621',{fs:14,color:C.aqua,bold:true,align:'center'});
   txt(s,96,753,1408,32,'A KDTree é uma inspeção didática; a etapa seguinte calcula os core distances pela matriz.',{fs:17,color:C.quiet,align:'center'});
   addNote('HDBSCAN: distâncias e KDTree','Etapa 2 materializa pairwise_distances com shape (9,9), simétrica e diagonal zero; o custo de espaço é O(n²). Etapa 3 consulta KDTree com k=min_samples+1: a biblioteca conta os vizinhos externos, então k=3 inclui o próprio ponto e dois vizinhos. A distância final é a core distance. A para I mede 4.708; core(I)=4.0621 contra core(A)=0.0299. A consulta é para inspeção; mutual_reachability recalcula os valores da matriz.','python/hdbscan_exemplo.py · docs/saida-esperada.txt');
 }
@@ -273,41 +341,56 @@ function addNote(title, content, files='') { notes.push({title,content,files}); 
 }
 // 16 — HDBSCAN: MST
 {
-  const s=base('HDBSCAN · ETAPA 5','A MST reduz conexões sem perder a conectividade','Nove vértices precisam de apenas oito arestas para formar uma árvore.');
-  rect(s,96,286,600,420,C.card,{r:22,stroke:C.stroke,sw:1});
-  txt(s,128,310,530,30,'GRAFO COMPLETO  →  MST',{fs:16,color:C.aqua,bold:true});
-  metric(s,128,373,190,124,'36','pares não dirigidos',C.gold);txt(s,342,405,90,45,'→',{fs:36,color:C.quiet,bold:true,align:'center'});metric(s,452,373,190,124,'8','arestas · n − 1',C.aqua);
-  txt(s,128,536,510,80,'Sem ciclos. Todos os incidentes continuam conectados. Peso total = 4.8978.',{fs:20,color:C.muted,lh:1.35});
-  rect(s,736,286,768,420,C.bg2,{r:22,stroke:C.stroke,sw:1});
-  txt(s,770,310,690,30,'ARESTAS DA MST  ·  MENOR PARA MAIOR',{fs:16,color:C.gold,bold:true});
-  const edges=[['A–D','0.0299'],['A–B','0.0321'],['E–H','0.0354'],['E–F','0.0443'],['A–C','0.0457'],['E–G','0.0593'],['B–G','0.5890'],['F–I','4.0621']];
-  edges.forEach((e,i)=>{const col=i<4?0:1,row=i<4?i:i-4,x=774+col*352,y=366+row*68;txt(s,x,y,86,31,e[0],{fs:18,color:i<6?C.aqua:i===6?C.gold:C.coral,bold:true,font:'Menlo'});txt(s,x+90,y,85,31,e[1],{fs:17,color:C.muted,font:'Menlo',align:'right'});rect(s,x,y+39,Math.max(8,Math.sqrt(Number(e[1]))*36),5,i<6?C.aqua:i===6?C.gold:C.coral,{r:2});});
+  const s=base('HDBSCAN · ETAPA 5','A árvore geradora mínima conecta os nove incidentes','Cada linha é uma aresta real da MST; a cor destaca grupos próximos e as ligações mais caras.');
+  const pts={A:[190,450],D:[125,338],B:[430,338],C:[290,594],G:[665,470],E:[885,337],H:[1020,433],F:[890,594],I:[1240,594]};
+  const edge=(a,b,label,color,lx,ly,lw=116)=>{const [x1,y1]=pts[a],[x2,y2]=pts[b];connector(s,x1+33,y1+28,x2+33,y2+28,{color,sw:4});rect(s,lx,ly,lw,26,C.bg,{r:7,alpha:93000});txt(s,lx,ly,lw,26,label,{fs:15,color,bold:true,font:'Menlo',align:'center'});};
+  edge('A','D','0.0299',C.aqua,96,400,92);edge('A','B','0.0321',C.aqua,292,385,108);edge('A','C','0.0457',C.aqua,220,520,110);
+  edge('B','G','0.5890',C.gold,508,407,112);edge('E','G','0.0593',C.gold,750,384,112);edge('E','H','0.0354',C.aqua,950,398,112);edge('E','F','0.0443',C.aqua,845,480,112);edge('F','I','4.0621',C.coral,1020,568,132);
+  for(const [name,[x,y]] of Object.entries(pts)){
+    const col=name==='I'?C.coral:['E','F','G','H'].includes(name)?C.gold:C.aqua;
+    node(s,x,y,66,56,name,{geom:'ellipse',fill:C.bg2,stroke:col,color:col,fs:18});
+  }
+  rect(s,96,714,1408,70,C.bg2,{r:18,stroke:C.stroke,sw:1});
+  txt(s,125,724,1350,50,'36 pares possíveis  →  8 arestas (n−1)  ·  sem ciclos  ·  conectividade preservada  ·  peso total = 4.8978',{fs:19,color:C.ink,bold:true,align:'center',valign:'middle'});
   addNote('HDBSCAN: MST','Etapa 5 passa o grafo CSR a minimum_spanning_tree. O grafo não direcionado tem 36 pares possíveis; a MST guarda n−1=8 arestas, sem ciclos, preservando conectividade e minimizando o peso total, 4.8978. A ligação B–G (0.5890) une as duas regiões densas; F–I (4.0621) é o elo mais caro. A visão COO vira array [origem,destino,peso].','python/hdbscan_exemplo.py · docs/saida-esperada.txt');
 }
 // 17 — HDBSCAN: hierarquia
 {
-  const s=base('HDBSCAN · ETAPA 6','Ordenar as arestas revela as fusões','Conexões curtas unem primeiro; as distantes juntam componentes maiores.');
-  rect(s,96,286,780,422,C.card,{r:22,stroke:C.stroke,sw:1});
-  txt(s,128,310,710,30,'LINKAGE · CADA LINHA = UMA UNIÃO',{fs:16,color:C.aqua,bold:true});
-  const merges=[['A + D','0.0299'],['(A,D) + B','0.0321'],['E + H','0.0354'],['(E,H) + F','0.0443'],['(A,B,D) + C','0.0457'],['(E,F,H) + G','0.0593'],['grupo 0 + grupo 1','0.5890'],['grupos + I','4.0621']];
-  merges.forEach((m,i)=>{const y=354+i*40;txt(s,132,y,310,26,m[0],{fs:16,color:i<6?C.muted:C.ink,bold:i>=6});rect(s,450,y+6,Math.max(7,Math.sqrt(Number(m[1]))*36),10,i<6?C.aqua:i===6?C.gold:C.coral,{r:5});txt(s,730,y,100,26,m[1],{fs:15,color:C.quiet,font:'Menlo',align:'right'});});
-  rect(s,916,286,588,422,C.bg2,{r:22,stroke:C.stroke,sw:1});
-  txt(s,950,310,520,30,'ESTRUTURA DE SAÍDA',{fs:16,color:C.gold,bold:true});
-  codeBox(s,950,362,520,130,'ARRAY LINKAGE','[filho A, filho B, distância, tamanho]',C.aqua,17);
-  txt(s,950,520,515,92,'label() usa union-find para unir componentes sem percorrer todos os pontos a cada fusão.',{fs:19,color:C.muted,lh:1.35});
-  txt(s,950,633,515,40,'DisjointSet só ajuda a visualizar as uniões.',{fs:16,color:C.quiet});
+  const s=base('HDBSCAN · ETAPA 6','O dendrograma mostra a ordem das fusões','Subárvores compactas se unem primeiro; a ligação longa de I aparece no topo.');
+  const y0=650, X={A:150,D:260,B:370,C:480,E:720,H:830,F:940,G:1050,I:1300};
+  const join=(leftX,leftY,rightX,rightY,y,color,label,lx,lw=100)=>{
+    const cx=(leftX+rightX)/2;
+    connector(s,leftX,leftY,leftX,y,{color,sw:3});connector(s,rightX,rightY,rightX,y,{color,sw:3});connector(s,leftX,y,rightX,y,{color,sw:3});
+    if(label)txt(s,lx,y-31,lw,24,label,{fs:14,color,bold:true,font:'Menlo',align:'center'});
+    return [cx,y];
+  };
+  const ad=join(X.A,y0,X.D,y0,618,C.aqua,'0.0299',85,110);
+  const adb=join(ad[0],ad[1],X.B,y0,604,C.aqua,'0.0321',240,110);
+  const abdc=join(adb[0],adb[1],X.C,y0,580,C.aqua,'0.0457',322,110);
+  const eh=join(X.E,y0,X.H,y0,600,C.gold,'0.0354',650,110);
+  const ehf=join(eh[0],eh[1],X.F,y0,590,C.gold,'0.0443',802,110);
+  const ehfg=join(ehf[0],ehf[1],X.G,y0,566,C.gold,'0.0593',900,110);
+  const groups=join(abdc[0],abdc[1],ehfg[0],ehfg[1],452,C.coral,'0.5890',585,120);
+  join(groups[0],groups[1],X.I,y0,326,C.coral,'4.0621',1078,128);
+  const leaves={A:C.aqua,D:C.aqua,B:C.aqua,C:C.aqua,E:C.gold,H:C.gold,F:C.gold,G:C.gold,I:C.coral};
+  for(const [label,x] of Object.entries(X)){node(s,x-31,y0,62,48,label,{geom:'ellipse',fill:C.bg2,stroke:leaves[label],color:leaves[label],fs:16});txt(s,x-42,704,84,25,label,{fs:15,color:leaves[label],bold:true,align:'center'});}
+  txt(s,96,757,1408,30,'Cada união do linkage guarda [filho A, filho B, distância, tamanho]; union-find acompanha os componentes.',{fs:18,color:C.muted,align:'center'});
   addNote('HDBSCAN: hierarquia','Etapa 6 ordena arestas da MST por peso e passa o array à rotina label do hdbscan. O linkage registra filho A, filho B, distância e tamanho. A–D, B e C formam um componente; E–H, F e G formam outro; os grupos se unem em 0.5890, e I entra por último, em 4.0621. A biblioteca usa union-find para o linkage. DisjointSet do SciPy é apenas uma visualização auxiliar das componentes.','python/hdbscan_exemplo.py · docs/saida-esperada.txt');
 }
 // 18 — HDBSCAN: condensação e seleção
 {
   const s=base('HDBSCAN · ETAPA 7','A árvore condensada pergunta quais grupos persistem','min_cluster_size=3 elimina ramos pequenos; EOM compara a estabilidade.');
   rect(s,96,286,640,422,C.card,{r:22,stroke:C.stroke,sw:1});
-  txt(s,128,310,580,30,'ÁRVORE CONDENSADA',{fs:16,color:C.aqua,bold:true});
-  rect(s,328,366,178,54,C.card2,{r:14,stroke:C.quiet,sw:1});txt(s,328,371,178,44,'raiz 9',{fs:19,color:C.muted,bold:true,align:'center',valign:'middle'});
-  txt(s,265,440,46,35,'↙',{fs:28,color:C.quiet,bold:true,align:'center'});txt(s,520,440,46,35,'↘',{fs:28,color:C.quiet,bold:true,align:'center'});
-  rect(s,160,481,190,74,C.card2,{r:15,stroke:C.aqua,sw:2});txt(s,170,486,170,62,'10 · A–D\n4 pontos',{fs:18,color:C.aqua,bold:true,align:'center',valign:'middle'});
-  rect(s,454,481,190,74,C.card2,{r:15,stroke:C.gold,sw:2});txt(s,464,486,170,62,'11 · E–H\n4 pontos',{fs:18,color:C.gold,bold:true,align:'center',valign:'middle'});
-  txt(s,138,590,540,68,'I sai da raiz em λ=0.2462.\nOs ramos nascem em λ=1.6979.',{fs:17,color:C.muted,align:'center',lh:1.35});
+  txt(s,128,310,580,30,'RAIZ  →  RAMOS  →  SAÍDA COMO RUÍDO',{fs:15,color:C.aqua,bold:true});
+  connector(s,416,410,416,438,{color:C.quiet,sw:3});connector(s,216,438,536,438,{color:C.quiet,sw:3});
+  connector(s,216,438,216,482,{color:C.aqua,sw:3,arrow:true});connector(s,536,438,536,482,{color:C.gold,sw:3,arrow:true});
+  connector(s,416,410,416,612,{color:C.coral,sw:3,arrow:true});
+  node(s,326,354,180,56,'raiz · 9 pontos',{stroke:C.quiet,color:C.muted,fs:17});
+  node(s,122,482,188,72,'10 · A–D\n4 pontos · selecionado',{stroke:C.aqua,color:C.aqua,fs:16});
+  node(s,442,482,188,72,'11 · E–H\n4 pontos · selecionado',{stroke:C.gold,color:C.gold,fs:16});
+  node(s,326,612,180,56,'I sai da raiz',{stroke:C.coral,color:C.coral,fs:17});
+  txt(s,164,449,104,23,'λ = 1.6979',{fs:13,color:C.aqua,bold:true,align:'center'});txt(s,484,449,104,23,'λ = 1.6979',{fs:13,color:C.gold,bold:true,align:'center'});
+  txt(s,505,582,118,24,'λ = 0.2462',{fs:14,color:C.coral,bold:true});
   rect(s,780,286,724,422,C.card,{r:22,stroke:C.stroke,sw:1});
   txt(s,814,310,650,30,'ESTABILIDADE BRUTA · DICT POR ID',{fs:16,color:C.coral,bold:true});
   metric(s,814,363,190,116,'13.829','raiz · excluída',C.quiet);metric(s,1020,363,204,116,'108.601','grupo A–D · EOM',C.aqua);metric(s,1240,363,224,116,'77.749','grupo E–H · EOM',C.gold);
@@ -354,11 +437,11 @@ function esc(s){return String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').
 function color(hex,alpha=100000){return `<a:srgbClr val="${hex}"${alpha<100000?`><a:alpha val="${alpha}"/></a:srgbClr>`:'/>'}`;}
 function shapeXml(b,id){
   const x=Math.round(b.x*EMU), y=Math.round(b.y*EMU), w=Math.round(b.w*EMU), h=Math.round(b.h*EMU);
-  const isText=b.type==='text', geom=b.type==='rect'?(b.r===0?'rect':'roundRect'):'rect';
-  const fill=isText||b.fill==='none'?'<a:noFill/>':`<a:solidFill>${color(b.fill,b.alpha??100000)}</a:solidFill>`;
+  const isText=b.type==='text'||b.type==='node', geom=b.type==='rect'?(b.r===0?'rect':'roundRect'):b.type==='node'?b.geom:'rect';
+  const fill=b.type==='text'||b.fill==='none'?'<a:noFill/>':`<a:solidFill>${color(b.fill,b.alpha??100000)}</a:solidFill>`;
   const line=b.stroke&&b.stroke!=='none'&&b.sw?`<a:ln w="${Math.round(b.sw*EMU)}"><a:solidFill>${color(b.stroke,b.alpha??100000)}</a:solidFill></a:ln>`:'<a:ln><a:noFill/></a:ln>';
   const geomXml=`<a:prstGeom prst="${geom}"><a:avLst/></a:prstGeom>`;
-  const nv=`<p:nvSpPr><p:cNvPr id="${id}" name="Shape ${id}"/><p:cNvSpPr${isText?' txBox="1"':''}/><p:nvPr/></p:nvSpPr>`;
+  const nv=`<p:nvSpPr><p:cNvPr id="${id}" name="Shape ${id}"/><p:cNvSpPr${b.type==='text'?' txBox="1"':''}/><p:nvPr/></p:nvSpPr>`;
   const xfrm=`<a:xfrm><a:off x="${x}" y="${y}"/><a:ext cx="${w}" cy="${h}"/></a:xfrm>`;
   let tx='';
   if(isText){
@@ -367,6 +450,13 @@ function shapeXml(b,id){
     tx=`<p:txBody><a:bodyPr wrap="square" lIns="0" rIns="0" tIns="0" bIns="0" anchor="${anchor}"><a:normAutofit/></a:bodyPr><a:lstStyle/>${paras}</p:txBody>`;
   }
   return `<p:sp>${nv}<p:spPr>${xfrm}${geomXml}${fill}${line}</p:spPr>${tx}</p:sp>`;
+}
+function connectorXml(b,id){
+  const x1=Math.round(b.x1*EMU),y1=Math.round(b.y1*EMU),x2=Math.round(b.x2*EMU),y2=Math.round(b.y2*EMU);
+  const x=Math.min(x1,x2),y=Math.min(y1,y2),cx=Math.max(1,Math.abs(x2-x1)),cy=Math.max(1,Math.abs(y2-y1));
+  const flips=`${x2<x1?' flipH="1"':''}${y2<y1?' flipV="1"':''}`;
+  const head=b.arrow?'<a:headEnd type="triangle" w="sm" len="sm"/>':'';
+  return `<p:cxnSp><p:nvCxnSpPr><p:cNvPr id="${id}" name="Connector ${id}"/><p:cNvCxnSpPr/><p:nvPr/></p:nvCxnSpPr><p:spPr><a:xfrm${flips}><a:off x="${x}" y="${y}"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="line"><a:avLst/></a:prstGeom><a:ln w="${Math.round(b.sw*EMU)}"><a:solidFill>${color(b.color)}</a:solidFill><a:prstDash val="solid"/>${head}</a:ln></p:spPr></p:cxnSp>`;
 }
 function imageDimensions(file){
   const data=fs.readFileSync(file);
@@ -392,18 +482,39 @@ function pictureCrop(b){
   else if(source<target){const cut=(1-source/target);t=Math.round(cut*35000);bottom=Math.round(cut*65000);}
   return `l="${l}" r="${r}" t="${t}" b="${bottom}"`;
 }
-function picXml(b,id){
+function picXml(b,id,relId){
   const x=Math.round(b.x*EMU), y=Math.round(b.y*EMU), w=Math.round(b.w*EMU), h=Math.round(b.h*EMU);
-  return `<p:pic><p:nvPicPr><p:cNvPr id="${id}" name="Foto de Solange" descr="Retrato da ministrante"/><p:cNvPicPr><a:picLocks noChangeAspect="1"/></p:cNvPicPr><p:nvPr/></p:nvPicPr><p:blipFill><a:blip r:embed="rId2"/><a:srcRect ${pictureCrop(b)}/><a:stretch><a:fillRect/></a:stretch></p:blipFill><p:spPr><a:xfrm><a:off x="${x}" y="${y}"/><a:ext cx="${w}" cy="${h}"/></a:xfrm><a:prstGeom prst="roundRect"><a:avLst/></a:prstGeom><a:ln><a:solidFill>${color(C.aqua)}</a:solidFill><a:prstDash val="solid"/></a:ln></p:spPr></p:pic>`;
+  const crop=b.fit==='cover'?pictureCrop(b):'l="0" r="0" t="0" b="0"';
+  const geom=b.r?'roundRect':'rect';
+  const line=b.stroke&&b.stroke!=='none'&&b.sw?`<a:ln w="${Math.round(b.sw*EMU)}"><a:solidFill>${color(b.stroke)}</a:solidFill><a:prstDash val="solid"/></a:ln>`:'<a:ln><a:noFill/></a:ln>';
+  return `<p:pic><p:nvPicPr><p:cNvPr id="${id}" name="${esc(b.name||'Ilustração')}" descr="${esc(b.alt||'Ilustração')}"/><p:cNvPicPr><a:picLocks noChangeAspect="1"/></p:cNvPicPr><p:nvPr/></p:nvPicPr><p:blipFill><a:blip r:embed="${relId}"/><a:srcRect ${crop}/><a:stretch><a:fillRect/></a:stretch></p:blipFill><p:spPr><a:xfrm><a:off x="${x}" y="${y}"/><a:ext cx="${w}" cy="${h}"/></a:xfrm><a:prstGeom prst="${geom}"><a:avLst/></a:prstGeom>${line}</p:spPr></p:pic>`;
 }
 function slideXml(s){
-  const shapes=s.blocks.map((b,i)=>b.type==='image'?picXml(b,i+2):shapeXml(b,i+2)).join('');
+  let imageIndex=0;
+  const shapes=s.blocks.map((b,i)=>{
+    const id=i+2;
+    if(b.type==='image')return picXml(b,id,`rId${imageIndex+++2}`);
+    if(b.type==='connector')return connectorXml(b,id);
+    return shapeXml(b,id);
+  }).join('');
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><p:sld xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"><p:cSld><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/><a:chOff x="0" y="0"/><a:chExt cx="0" cy="0"/></a:xfrm></p:grpSpPr>${shapes}</p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sld>`;
 }
+let htmlConnectorId=0;
 function htmlBlock(b){
   const pos=`left:${b.x}px;top:${b.y}px;width:${b.w}px;height:${b.h}px;`;
-  if(b.type==='image'){const mime=b.ext==='png'?'image/png':'image/jpeg';const data=fs.readFileSync(b.file).toString('base64');return `<img alt="Foto de Solange Brasileiro" src="data:${mime};base64,${data}" style="position:absolute;${pos}object-fit:cover;object-position:center 36%;border:2px solid #${C.aqua};border-radius:22px;box-sizing:border-box">`;}
+  if(b.type==='image'){const mime=b.ext==='png'?'image/png':'image/jpeg';const data=fs.readFileSync(b.file).toString('base64');const border=b.stroke&&b.stroke!=='none'&&b.sw?`border:${b.sw}px solid #${b.stroke};`:'';return `<img alt="${esc(b.alt||'Ilustração')}" src="data:${mime};base64,${data}" style="position:absolute;${pos}object-fit:${b.fit||'contain'};object-position:center ${b.fit==='cover'?'36%':'center'};${border}border-radius:${b.r||0}px;box-sizing:border-box">`;}
+  if(b.type==='connector'){
+    const id=`arrow${htmlConnectorId++}`,left=Math.min(b.x1,b.x2),top=Math.min(b.y1,b.y2),width=Math.max(1,Math.abs(b.x2-b.x1)),height=Math.max(1,Math.abs(b.y2-b.y1));
+    const x1=b.x1-left,y1=b.y1-top,x2=b.x2-left,y2=b.y2-top;
+    return `<svg aria-hidden="true" style="position:absolute;left:${left}px;top:${top}px;width:${width}px;height:${height}px;overflow:visible;pointer-events:none"><defs><marker id="${id}" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L6,3 z" fill="#${b.color}"/></marker></defs><line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#${b.color}" stroke-width="${b.sw}"${b.arrow?` marker-end="url(#${id})"`:''}/></svg>`;
+  }
   if(b.type==='rect') return `<div aria-hidden="true" style="position:absolute;${pos}background:${b.fill==='none'?'transparent':'#'+b.fill};border:${b.stroke&&b.stroke!=='none'&&b.sw?`${b.sw}px solid #${b.stroke}`:'0'};border-radius:${b.r===0?0:b.r}px;opacity:${(b.alpha??100000)/100000};box-sizing:border-box"></div>`;
+  if(b.type==='node'){
+    const border=b.sw||1,rx=b.geom==='roundRect'?Math.min(b.h/4,18):0;
+    const svgShape=b.geom==='diamond'?`<polygon points="${b.w/2},1 ${b.w-1},${b.h/2} ${b.w/2},${b.h-1} 1,${b.h/2}" fill="#${b.fill}" stroke="#${b.stroke}" stroke-width="${border}"/>`:b.geom==='ellipse'?`<ellipse cx="${b.w/2}" cy="${b.h/2}" rx="${b.w/2-border}" ry="${b.h/2-border}" fill="#${b.fill}" stroke="#${b.stroke}" stroke-width="${border}"/>`:`<rect x="1" y="1" width="${b.w-2}" height="${b.h-2}" rx="${rx}" fill="#${b.fill}" stroke="#${b.stroke}" stroke-width="${border}"/>`;
+    const pad=b.geom==='diamond'?'left:26%;top:15%;width:48%;height:70%;':'left:8px;top:5px;width:calc(100% - 16px);height:calc(100% - 10px);';
+    return `<div style="position:absolute;${pos}"><svg aria-hidden="true" width="100%" height="100%" viewBox="0 0 ${b.w} ${b.h}" style="position:absolute;inset:0;overflow:visible">${svgShape}</svg><div class="fit-text" data-base-fs="${b.fs}" style="position:absolute;${pad}display:flex;justify-content:center;align-items:center;text-align:center;white-space:pre-wrap;overflow:hidden;box-sizing:border-box;font:700 ${b.fs}px/${b.lh} Aptos,Arial,sans-serif;color:#${b.color}">${esc(b.text)}</div></div>`;
+  }
   const family=b.font==='Menlo'?'Menlo,Consolas,monospace':'Aptos,Arial,sans-serif';
   const align=b.align==='center'?'center':b.align==='right'?'right':'left';
   const valign=b.valign==='middle'?'center':b.valign==='bottom'?'flex-end':'flex-start';
@@ -421,7 +532,12 @@ function xml(name){return `<?xml version="1.0" encoding="UTF-8" standalone="yes"
 function pptxFiles(){
  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'slides-'));
  const write=(name,data)=>{const p=path.join(dir,name);fs.mkdirSync(path.dirname(p),{recursive:true});fs.writeFileSync(p,data);};
- write('[Content_Types].xml',xml(`<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/>${PHOTO_PATH?`<Default Extension="${PHOTO_EXT==='jpeg'?'jpg':PHOTO_EXT}" ContentType="${PHOTO_EXT==='png'?'image/png':'image/jpeg'}"/>`:''}<Override PartName="/ppt/presentation.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"/><Override PartName="/ppt/slideMasters/slideMaster1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideMaster+xml"/><Override PartName="/ppt/slideLayouts/slideLayout1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideLayout+xml"/><Override PartName="/ppt/theme/theme1.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/>${slides.map((_,i)=>`<Override PartName="/ppt/slides/slide${i+1}.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>`).join('')}</Types>`));
+ const imageFiles=[...new Set(slides.flatMap(s=>s.blocks.filter(b=>b.type==='image').map(b=>b.file)))];
+ const mediaNames=new Map(imageFiles.map((file,i)=>[file,`image${i+1}.${path.extname(file).slice(1).toLowerCase().replace('jpeg','jpg')}`]));
+ const imageExts=[...new Set([...mediaNames.values()].map(file=>path.extname(file).slice(1)))];
+ const imageTypes={png:'image/png',jpg:'image/jpeg'};
+ const imageDefaults=imageExts.map(ext=>`<Default Extension="${ext}" ContentType="${imageTypes[ext]}"/>`).join('');
+ write('[Content_Types].xml',xml(`<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/>${imageDefaults}<Override PartName="/ppt/presentation.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"/><Override PartName="/ppt/slideMasters/slideMaster1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideMaster+xml"/><Override PartName="/ppt/slideLayouts/slideLayout1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideLayout+xml"/><Override PartName="/ppt/theme/theme1.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/>${slides.map((_,i)=>`<Override PartName="/ppt/slides/slide${i+1}.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>`).join('')}</Types>`));
  write('_rels/.rels',xml(`<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="ppt/presentation.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/><Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties" Target="docProps/app.xml"/></Relationships>`));
  write('docProps/core.xml',xml(`<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><dc:title>Estruturas de dados no mundo real</dc:title><dc:creator>Solange Brasileiro</dc:creator><dc:subject>Minicurso de estruturas de dados</dc:subject></cp:coreProperties>`));
  write('docProps/app.xml',xml(`<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties" xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes"><Application>Open XML</Application><Slides>${slides.length}</Slides></Properties>`));
@@ -432,11 +548,11 @@ function pptxFiles(){
  write('ppt/slideLayouts/slideLayout1.xml',xml(`<p:sldLayout xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" type="blank" preserve="1"><p:cSld name="Blank"><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/><a:chOff x="0" y="0"/><a:chExt cx="0" cy="0"/></a:xfrm></p:grpSpPr></p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sldLayout>`));
  write('ppt/slideLayouts/_rels/slideLayout1.xml.rels',xml(`<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideMaster" Target="../slideMasters/slideMaster1.xml"/></Relationships>`));
  write('ppt/theme/theme1.xml',xml(`<a:theme xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" name="Estruturas de dados"><a:themeElements><a:clrScheme name="Indigo"><a:dk1>${color(C.dark)}</a:dk1><a:lt1>${color(C.ink)}</a:lt1><a:dk2>${color(C.bg)}</a:dk2><a:lt2>${color(C.muted)}</a:lt2><a:accent1>${color(C.aqua)}</a:accent1><a:accent2>${color(C.gold)}</a:accent2><a:accent3>${color(C.coral)}</a:accent3><a:accent4>${color(C.lime)}</a:accent4><a:accent5>${color(C.stroke)}</a:accent5><a:accent6>${color(C.card2)}</a:accent6><a:hlink>${color(C.aqua)}</a:hlink><a:folHlink>${color(C.coral)}</a:folHlink></a:clrScheme><a:fontScheme name="Aptos"><a:majorFont><a:latin typeface="Aptos Display"/><a:ea typeface="Aptos Display"/><a:cs typeface="Aptos Display"/></a:majorFont><a:minorFont><a:latin typeface="Aptos"/><a:ea typeface="Aptos"/><a:cs typeface="Aptos"/></a:minorFont></a:fontScheme><a:fmtScheme name="Office"><a:fillStyleLst><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:fillStyleLst><a:lnStyleLst><a:ln w="6350"><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:prstDash val="solid"/></a:ln><a:ln w="12700"><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:prstDash val="solid"/></a:ln><a:ln w="19050"><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:prstDash val="solid"/></a:ln></a:lnStyleLst><a:effectStyleLst><a:effectStyle><a:effectLst/></a:effectStyle><a:effectStyle><a:effectLst/></a:effectStyle><a:effectStyle><a:effectLst/></a:effectStyle></a:effectStyleLst><a:bgFillStyleLst><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:bgFillStyleLst></a:fmtScheme></a:themeElements></a:theme>`));
- if(PHOTO_PATH){const ext=PHOTO_EXT==='jpeg'?'jpg':PHOTO_EXT;write(`ppt/media/solange.${ext}`,fs.readFileSync(PHOTO_PATH));}
+ for(const file of imageFiles)write(`ppt/media/${mediaNames.get(file)}`,fs.readFileSync(file));
  for(let i=0;i<slides.length;i++){
    write(`ppt/slides/slide${i+1}.xml`,slideXml(slides[i]));
-   const photoRel=i===1&&PHOTO_PATH?`<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/solange.${PHOTO_EXT==='jpeg'?'jpg':PHOTO_EXT}"/>`:'';
-   write(`ppt/slides/_rels/slide${i+1}.xml.rels`,xml(`<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout" Target="../slideLayouts/slideLayout1.xml"/>${photoRel}</Relationships>`));
+   const imageRels=slides[i].blocks.filter(b=>b.type==='image').map((b,j)=>`<Relationship Id="rId${j+2}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/${mediaNames.get(b.file)}"/>`).join('');
+   write(`ppt/slides/_rels/slide${i+1}.xml.rels`,xml(`<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout" Target="../slideLayouts/slideLayout1.xml"/>${imageRels}</Relationships>`));
  }
  const out=path.join(OUT,'apresentacao-minicurso-estruturas.pptx');
  try{fs.rmSync(out,{force:true});execFileSync('zip',['-q','-X','-r',out,'.'],{cwd:dir});}finally{fs.rmSync(dir,{recursive:true,force:true});}
