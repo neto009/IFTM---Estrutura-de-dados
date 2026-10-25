@@ -1,0 +1,36 @@
+{
+  "id": "suporte",
+  "title": "Central de conhecimento",
+  "children": [
+    {
+      "id": "guias",
+      "title": "Guias de atendimento",
+      "children": [
+        { "id": "acesso", "title": "Acesso ao portal", "children": [] },
+        { "id": "recuperacao", "title": "Recuperação de senha", "children": [] }
+      ]
+    },
+    {
+      "id": "operacao",
+      "title": "Operação de serviços",
+      "children": [
+        {
+          "id": "incidentes",
+          "title": "Tratamento de incidentes",
+          "children": [
+            { "id": "incidente-451", "title": "Falha de autenticação", "children": [] },
+            { "id": "incidente-521", "title": "Erro no pagamento", "children": [] }
+          ]
+        },
+        { "id": "monitoramento", "title": "Monitoramento e alertas", "children": [] }
+      ]
+    },
+    {
+      "id": "politicas",
+      "title": "Políticas de suporte",
+      "children": [
+        { "id": "escalonamento", "title": "Escalonamento e plantão", "children": [] }
+      ]
+    }
+  ]
+}

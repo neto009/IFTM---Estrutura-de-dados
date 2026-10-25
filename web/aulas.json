@@ -1,0 +1,1721 @@
+[
+  {
+    "id": 1,
+    "titulo": "Organizar chamados que chegam fora de ordem",
+    "linguagem": "Java",
+    "grupo": "Listas e fontes de dados",
+    "estruturas": [
+      "List",
+      "Stream",
+      "Comparator",
+      "PriorityQueue"
+    ],
+    "contexto": "Um ajuste de texto chega antes de duas falhas críticas. O plantão precisa escolher quem atende primeiro, sem perder a lista original.",
+    "pergunta": "Que critério define o próximo chamado: posição de chegada ou prioridade?",
+    "fontes": [
+      "src/oficina/demonstracoes/DadosOficina.java",
+      "src/oficina/demonstracoes/ExemplosColecoes.java",
+      "src/oficina/dominio/Chamado.java",
+      "src/oficina/casos/ConsultasChamados.java"
+    ],
+    "objetivo": "Transformar chamados recebidos fora de ordem em uma sequência de atendimento que respeita urgência e desempate.",
+    "entrada": "Seis objetos Chamado com ID, título, prioridade e status. Eles chegam na ordem 102, 105, 106, 103, 104, 101.",
+    "resultadoEsperado": "Uma lista de abertos ordenada e a demonstração de como um novo crítico entra no plantão.",
+    "termos": [
+      [
+        "Estrutura de dados",
+        "Forma de organizar valores para realizar operações como percorrer, buscar, inserir, retirar ou ordenar. A escolha depende da operação necessária."
+      ],
+      [
+        "Objeto",
+        "Conjunto de campos que representam algo do cenário. Um Chamado reúne ID, título, equipe, prioridade e situação."
+      ],
+      [
+        "List",
+        "Coleção que guarda elementos em posições e preserva uma ordem. Essa ordem não é automaticamente a de prioridade."
+      ],
+      [
+        "Stream",
+        "Sequência de operações que lê e transforma dados de uma fonte. toList guarda o resultado em uma nova lista."
+      ],
+      [
+        "Comparator",
+        "Regra que diz qual de dois objetos deve aparecer primeiro. Aqui compara prioridade e, no empate, ID."
+      ],
+      [
+        "PriorityQueue",
+        "Coleção pronta que escolhe o próximo elemento pela regra de prioridade, mesmo quando chegam novos itens."
+      ]
+    ],
+    "etapas": [
+      {
+        "titulo": "Receber os chamados fora de ordem",
+        "estrutura": "List<Chamado>",
+        "entrada": "IDs 102, 105, 106, 103, 104, 101",
+        "acao": "Guardar a ordem recebida",
+        "saida": "Seis objetos ainda sem triagem",
+        "porQue": "Precisamos enxergar a fonte antes de consultar. Uma List organiza posições, mas não adivinha qual problema é urgente.",
+        "explicacao": [
+          "Imagine a lista devolvida por uma API de chamados. O primeiro registro é um ajuste de texto; as duas falhas críticas aparecem perto do fim. Atender apenas pela posição faria o time começar pelo problema menos urgente.",
+          "Cada registro é um objeto Chamado. O ID identifica o registro; status informa sua situação; prioridade orienta o atendimento. A fonte será preservada para compararmos antes e depois."
+        ],
+        "codigo": [
+          {
+            "arquivo": "src/oficina/demonstracoes/DadosOficina.java",
+            "simbolo": "chamados"
+          },
+          {
+            "arquivo": "src/oficina/dominio/Chamado.java"
+          }
+        ],
+        "pergunta": "A posição de chegada representa a urgência?",
+        "resposta": "Não. A List preserva chegada; prioridade é um campo e uma regra de negócio."
+      },
+      {
+        "titulo": "Filtrar quem ainda aguarda atendimento",
+        "estrutura": "List + Stream.filter",
+        "entrada": "Seis chamados com três situações possíveis",
+        "acao": "Manter somente status ABERTO",
+        "saida": "IDs 102, 106, 104, 101",
+        "porQue": "Filtrar vem antes de priorizar: não queremos escolher um chamado resolvido nem duplicar o trabalho de quem já está atendendo.",
+        "explicacao": [
+          "filter avalia cada objeto com uma pergunta que devolve verdadeiro ou falso: este chamado está aguardando atendimento? Somente quem responde sim segue para o resultado.",
+          "toList cria uma nova lista com quatro objetos. A ordem relativa desses quatro ainda é a da chegada. Filtrar não significa ordenar e também não significa apagar os outros registros."
+        ],
+        "codigo": [
+          {
+            "arquivo": "src/oficina/casos/ConsultasChamados.java",
+            "simbolo": "filtrarAbertos"
+          },
+          {
+            "arquivo": "src/oficina/dominio/Chamado.java",
+            "simbolo": "aguardandoAtendimento"
+          }
+        ],
+        "decisao": {
+          "pergunta": "O chamado está ABERTO?",
+          "sim": "Incluído na nova lista",
+          "nao": "Continua apenas na fonte"
+        },
+        "pergunta": "Filtrar também ordena os chamados?",
+        "resposta": "Não. Os quatro abertos ainda mantêm a ordem relativa da entrada."
+      },
+      {
+        "titulo": "Ordenar por urgência e selecionar o top 3",
+        "estrutura": "Comparator + sorted + limit",
+        "entrada": "Abertos: 102, 106, 104, 101",
+        "acao": "Prioridade primeiro; ID desempata",
+        "saida": "Ordem: 101, 104, 106, 102",
+        "porQue": "A lista filtrada ainda mistura urgências. Ordenar torna a regra de atendimento visível e reproduzível.",
+        "explicacao": [
+          "sorted consulta o Comparator para comparar os chamados. Dois críticos aparecem antes do alto; entre os críticos, 101 vem antes de 104 pelo ID. O ajuste de texto 102 vai para o fim.",
+          "limit(3) apresenta apenas 101, 104 e 106. A lista ordenada ainda possui quatro elementos, e a fonte continua com seis. Selecionar uma parte do resultado não remove itens das demais coleções."
+        ],
+        "codigo": [
+          {
+            "arquivo": "src/oficina/casos/ConsultasChamados.java",
+            "simbolo": "priorizarAbertos"
+          },
+          {
+            "arquivo": "src/oficina/casos/ConsultasChamados.java",
+            "simbolo": "ORDEM_ATENDIMENTO"
+          }
+        ],
+        "pergunta": "Qual foi a transformação observada?",
+        "resposta": "102, 106, 104, 101 virou 101, 104, 106, 102; o top 3 seleciona só os primeiros."
+      },
+      {
+        "titulo": "Tratar uma nova chegada durante o plantão",
+        "estrutura": "PriorityQueue.offer / poll",
+        "entrada": "Quatro abertos e o novo crítico 107",
+        "acao": "Inserir com offer e retirar com poll",
+        "saida": "101 → 104 → 107 → 106 → 102",
+        "porQue": "Uma lista ordenada resolve uma consulta. A fila de prioridade resolve a retirada contínua quando novas tarefas entram.",
+        "explicacao": [
+          "O novo incidente 107 chega depois, mas tem prioridade crítica. A PriorityQueue usa a mesma regra de comparação e o coloca à frente dos chamados de prioridade alta e baixa.",
+          "A sequência mostrada é obtida retirando elementos com poll. Percorrer a fila com for não garante ordem de prioridade. A estrutura interna continua sendo responsabilidade da biblioteca."
+        ],
+        "codigo": [
+          {
+            "arquivo": "src/oficina/casos/ConsultasChamados.java",
+            "simbolo": "criarFilaDePlantao"
+          },
+          {
+            "arquivo": "src/oficina/demonstracoes/ExemplosColecoes.java",
+            "simbolo": "carregarBacklog"
+          }
+        ],
+        "pergunta": "Por que o novo 107 passa à frente de 106?",
+        "resposta": "107 é crítico; 106 é alto. Entre críticos, o ID desempata."
+      }
+    ],
+    "conclusao": {
+      "resultado": "Abertos ordenados: 101, 104, 106, 102. Com o novo crítico, a retirada é 101, 104, 107, 106, 102.",
+      "porque": "List preserva a fonte, filter seleciona, Comparator define a regra e PriorityQueue atende chegadas contínuas. Cada escolha corresponde a uma operação.",
+      "aplicacao": "Triagem de bugs, tarefas de manutenção e trabalho de plantão.",
+      "limite": "Os dados ficam em memória e o ID é um desempate didático. Uma regra real também pode considerar SLA e tempo de espera.",
+      "pergunta": "Filtrar, ordenar e limitar são a mesma operação?",
+      "resposta": "Não. Filtrar escolhe quem entra; ordenar define a sequência; limitar escolhe quantos itens apresentar."
+    },
+    "codigoInicial": [
+      {
+        "arquivo": "src/oficina/demonstracoes/DadosOficina.java",
+        "simbolo": "chamados"
+      }
+    ],
+    "codigoFinal": [
+      {
+        "arquivo": "src/oficina/demonstracoes/ExemplosColecoes.java",
+        "simbolo": "carregarBacklog"
+      }
+    ]
+  },
+  {
+    "id": 9,
+    "titulo": "Importar linhas de um arquivo",
+    "linguagem": "Java",
+    "grupo": "Listas e fontes de dados",
+    "estruturas": [
+      "Files.readAllLines",
+      "List",
+      "Stream",
+      "Optional"
+    ],
+    "contexto": "Uma rotina recebeu uma lista de destinatários em um arquivo. Há espaços, linhas vazias e repetições para tratar.",
+    "pergunta": "Por que precisamos observar os dados brutos antes de normalizar a lista?",
+    "fontes": [
+      "src/oficina/demonstracoes/ExemplosListas.java",
+      "src/oficina/casos/ImportacaoEmails.java"
+    ],
+    "objetivo": "Converter linhas de um arquivo em uma lista de destinatários sem espaços extras, vazios ou repetições.",
+    "entrada": "Um arquivo de uma coluna. Há oito linhas: cabeçalho, espaços, uma linha vazia e e-mails repetidos com caixa diferente.",
+    "resultadoEsperado": "Quatro destinatários únicos e um primeiro lote com Ana e Bruno.",
+    "termos": [
+      [
+        "Índice",
+        "Número que identifica a posição de um item na lista. Em Java, a primeira posição é zero."
+      ],
+      [
+        "distinct",
+        "Operação que conserva uma ocorrência de cada valor considerado igual."
+      ],
+      [
+        "Optional",
+        "Objeto que representa um resultado que pode estar presente ou ausente; não é uma lista."
+      ]
+    ],
+    "etapas": [
+      {
+        "titulo": "Ler e observar cada linha",
+        "estrutura": "Files.readAllLines → List<String>",
+        "entrada": "Arquivo destinatarios.csv",
+        "acao": "Ler preservando cada linha",
+        "saida": "Oito strings, inclusive cabeçalho e vazio",
+        "porQue": "Precisamos saber o que chegou antes de decidir quais transformações aplicar.",
+        "explicacao": [
+          "Files.readAllLines é uma função pronta do JDK. Ela abre o arquivo, lê as linhas e devolve List<String>. Uma linha vazia também ocupa uma posição na lista.",
+          "As aspas na visualização tornam espaços e strings vazias perceptíveis. A leitura não limpa, valida ou deduplica automaticamente os valores."
+        ],
+        "codigo": [
+          {
+            "arquivo": "src/oficina/demonstracoes/ExemplosListas.java",
+            "simbolo": "carregarArquivo"
+          }
+        ],
+        "pergunta": "A leitura remove duplicatas ou espaços automaticamente?",
+        "resposta": "Não. A lista conserva as linhas recebidas, inclusive o cabeçalho."
+      },
+      {
+        "titulo": "Limpar e materializar uma nova lista",
+        "estrutura": "Stream → List<String>",
+        "entrada": "Oito linhas brutas",
+        "acao": "Pular cabeçalho, limpar, normalizar e deduplicar",
+        "saida": "Quatro destinatários ordenados",
+        "porQue": "A ordem das operações resolve diferenças do texto antes de comparar valores para deduplicação.",
+        "explicacao": [
+          "skip(1) ignora o cabeçalho. strip remove espaços nas pontas; filter descarta os vazios. toLowerCase torna comparáveis ANA e ana antes de distinct escolher uma única ocorrência.",
+          "sorted organiza o resultado e toList materializa outra lista. A entrada continua disponível para conferência. Observe, lado a lado, quais linhas desapareceram e quais apenas mudaram de forma."
+        ],
+        "codigo": [
+          {
+            "arquivo": "src/oficina/casos/ImportacaoEmails.java",
+            "simbolo": "preparar"
+          }
+        ],
+        "pergunta": "O que acontece se distinct vier antes de toLowerCase?",
+        "resposta": "Versões com caixa diferente podem sobreviver como dois destinatários."
+      },
+      {
+        "titulo": "Consultar um item e formar um lote",
+        "estrutura": "Optional + limit",
+        "entrada": "Quatro destinatários preparados",
+        "acao": "Buscar um contato e limitar o lote a dois",
+        "saida": "Ana encontrada; lote Ana e Bruno",
+        "porQue": "Uma busca por um item e a seleção de um conjunto pequeno têm contratos diferentes.",
+        "explicacao": [
+          "findFirst devolve Optional: há um contato ou não há. A ausência de um contato inexistente é esperada e recebe uma resposta explícita.",
+          "limit(2).toList cria a lista que poderia seguir para uma próxima operação. As demais posições continuam na lista preparada. Esta demonstração apenas organiza os dados."
+        ],
+        "codigo": [
+          {
+            "arquivo": "src/oficina/demonstracoes/ExemplosListas.java",
+            "simbolo": "arquivo"
+          }
+        ],
+        "decisao": {
+          "pergunta": "A consulta encontrou um contato?",
+          "sim": "Optional com o contato",
+          "nao": "Optional.empty"
+        },
+        "pergunta": "O Stream é a estrutura que armazena o lote?",
+        "resposta": "Não. O Stream é o processamento; toList materializa a coleção de saída."
+      }
+    ],
+    "conclusao": {
+      "resultado": "Oito linhas recebidas viraram quatro destinatários. O primeiro lote contém dois.",
+      "porque": "A lista mantém a entrada observável; o pipeline transforma valores em ordem e produz uma saída independente.",
+      "aplicacao": "Importação de cadastros, cargas de integração e preparação de lotes.",
+      "limite": "O arquivo tem uma coluna simples. A normalização do cenário não valida endereços nem envia mensagens. CSV geral exige parser próprio da biblioteca escolhida.",
+      "pergunta": "Por que normalizar a caixa antes de distinct?",
+      "resposta": "Para que versões como ANA e ana sejam comparadas como o mesmo valor no cenário."
+    },
+    "codigoInicial": [
+      {
+        "arquivo": "src/oficina/demonstracoes/ExemplosListas.java",
+        "simbolo": "carregarArquivo"
+      }
+    ],
+    "codigoFinal": [
+      {
+        "arquivo": "src/oficina/casos/ImportacaoEmails.java",
+        "simbolo": "preparar"
+      }
+    ]
+  },
+  {
+    "id": 11,
+    "titulo": "Consultar usuários em páginas",
+    "linguagem": "Java",
+    "grupo": "Listas e fontes de dados",
+    "estruturas": [
+      "List<Usuario>",
+      "filter",
+      "sorted",
+      "skip",
+      "limit"
+    ],
+    "contexto": "Um endpoint precisa listar usuários ativos em páginas pequenas. O banco é simulado para deixar o retorno List<Usuario> visível.",
+    "pergunta": "O que uma API precisa garantir para mostrar páginas reproduzíveis?",
+    "fontes": [
+      "src/oficina/casos/ConsultaUsuarios.java",
+      "src/oficina/demonstracoes/ExemplosListas.java"
+    ],
+    "objetivo": "Entender como registros de uma consulta viram uma List<Usuario> paginada e depois uma lista de contatos.",
+    "entrada": "Seis usuários fictícios; quatro ativos e dois inativos. O tamanho de página é dois.",
+    "resultadoEsperado": "Duas páginas com dois ativos, uma página vazia e dois objetos Contato na projeção da primeira página.",
+    "termos": [
+      [
+        "Repositório",
+        "Parte da aplicação que oferece consultas aos dados. Aqui usa uma lista em memória para simular um banco."
+      ],
+      [
+        "Paginação",
+        "Divisão de um resultado ordenado em partes menores."
+      ],
+      [
+        "DTO",
+        "Objeto com os campos necessários para uma resposta. Contato contém apenas nome e e-mail."
+      ]
+    ],
+    "etapas": [
+      {
+        "titulo": "Conhecer a fonte e o retorno da consulta",
+        "estrutura": "List<Usuario>",
+        "entrada": "Seis usuários com ID, nome, e-mail e situação",
+        "acao": "Guardar um snapshot da fonte",
+        "saida": "Contrato de consulta que retorna objetos",
+        "porQue": "Precisamos distinguir a fonte completa do resultado que o repositório devolverá.",
+        "explicacao": [
+          "Uma consulta de banco costuma entregar objetos para a aplicação. A lista de entrada inclui os inativos Bruno e Elisa; eles existem na fonte mesmo quando não devem aparecer no resultado.",
+          "List.copyOf conserva um snapshot dos registros. Nesta oficina não há conexão: o SQL exibido apenas relaciona o exemplo com um repositório do dia a dia."
+        ],
+        "codigo": [
+          {
+            "arquivo": "src/oficina/demonstracoes/ExemplosListas.java",
+            "simbolo": "consultarBanco"
+          },
+          {
+            "arquivo": "src/oficina/casos/ConsultaUsuarios.java",
+            "simbolo": "ConsultaUsuarios"
+          }
+        ],
+        "pergunta": "Estamos executando SQL ou abrindo uma conexão real?",
+        "resposta": "Não. A consulta equivalente aparece apenas para conectar a simulação ao uso diário de repositórios."
+      },
+      {
+        "titulo": "Selecionar ativos e paginar com ordem estável",
+        "estrutura": "filter → sorted → skip → limit",
+        "entrada": "Seis registros e tamanho dois",
+        "acao": "Filtrar ativos, ordenar por ID e recortar a página",
+        "saida": "[Ana, Clara], [Diego, Fábio], []",
+        "porQue": "Aplicar o limite antes do filtro poderia produzir uma página incompleta. Uma ordem estável permite explicar o recorte.",
+        "explicacao": [
+          "A página começa em zero. skip(pagina * tamanho) ignora os itens anteriores: a página 0 começa no offset 0 e a página 1 no offset 2. limit permite até dois itens por página.",
+          "Troque entre os resultados prontos da consulta. A página 2 devolve uma lista vazia; isso é um resultado válido, não uma falha de acesso ao banco."
+        ],
+        "codigo": [
+          {
+            "arquivo": "src/oficina/casos/ConsultaUsuarios.java",
+            "simbolo": "listarAtivos"
+          }
+        ],
+        "pergunta": "O que daria errado se limit viesse antes de filter?",
+        "resposta": "A página poderia ficar incompleta mesmo havendo outros usuários ativos."
+      },
+      {
+        "titulo": "Projetar a resposta em objetos Contato",
+        "estrutura": "map → List<Contato>",
+        "entrada": "Primeira página de usuários",
+        "acao": "Criar Contato(nome, email)",
+        "saida": "Dois objetos com dois campos",
+        "porQue": "A resposta deve carregar apenas os dados necessários à tela ou ao consumidor.",
+        "explicacao": [
+          "map transforma cada Usuario em outro objeto, Contato. O tipo da coleção muda de List<Usuario> para List<Contato>, e os registros da fonte continuam intactos.",
+          "A tabela exibe somente nome e e-mail. ID e situação não fazem parte do DTO. O mesmo princípio ajuda a separar entidades de dados e contratos de uma API."
+        ],
+        "codigo": [
+          {
+            "arquivo": "src/oficina/demonstracoes/ExemplosListas.java",
+            "simbolo": "consultarBanco"
+          }
+        ],
+        "pergunta": "Onde filtro e paginação devem ocorrer em um banco real?",
+        "resposta": "Na consulta ao banco. Carregar a tabela toda para filtrar na aplicação pode custar muito."
+      }
+    ],
+    "conclusao": {
+      "resultado": "Página 0: Ana e Clara; página 1: Diego e Fábio; página 2: vazia. A projeção da primeira página contém só nome e e-mail.",
+      "porque": "List preserva a ordem da consulta. Filtrar e ordenar antes do recorte dá sentido à paginação; map prepara o contrato de resposta.",
+      "aplicacao": "Listagens de APIs, telas administrativas e integrações paginadas.",
+      "limite": "O banco é simulado. Em produção, filtro, ordem e paginação devem ser executados pela consulta; consistência e índices também importam.",
+      "pergunta": "Uma página vazia precisa ser uma exceção?",
+      "resposta": "Não. Ela pode indicar que o resultado terminou."
+    },
+    "codigoInicial": [
+      {
+        "arquivo": "src/oficina/casos/ConsultaUsuarios.java"
+      }
+    ],
+    "codigoFinal": [
+      {
+        "arquivo": "src/oficina/casos/ConsultaUsuarios.java",
+        "simbolo": "listarAtivos"
+      }
+    ]
+  },
+  {
+    "id": 2,
+    "titulo": "Separar pedidos em FIFO",
+    "linguagem": "Java",
+    "grupo": "Ordem e consultas",
+    "estruturas": [
+      "Queue",
+      "ArrayDeque",
+      "HashSet",
+      "Optional"
+    ],
+    "contexto": "Pedidos pagos devem iniciar a separação na ordem da aprovação, mesmo que uma entrega de mensagem se repita.",
+    "pergunta": "Qual pedido deve sair primeiro da fila?",
+    "fontes": [
+      "src/oficina/dominio/Pedido.java",
+      "src/oficina/casos/FilaSeparacao.java"
+    ],
+    "objetivo": "Iniciar a separação de pedidos pagos na ordem em que foram aprovados e impedir agendamento repetido.",
+    "entrada": "Quatro pedidos que serão confirmados como pagos; o primeiro será entregue novamente para simular repetição.",
+    "resultadoEsperado": "PED-101, PED-102, PED-103 e PED-104 entram em separação, nessa ordem e uma vez cada.",
+    "termos": [
+      [
+        "FIFO",
+        "First in, first out: o primeiro a entrar é o primeiro a sair."
+      ],
+      [
+        "Queue",
+        "Contrato de uma fila. ArrayDeque é a implementação pronta usada aqui."
+      ],
+      [
+        "HashSet",
+        "Coleção de valores únicos. Aqui guarda os IDs já agendados."
+      ]
+    ],
+    "etapas": [
+      {
+        "titulo": "Confirmar pagamento e entrar na fila",
+        "estrutura": "Queue / ArrayDeque",
+        "entrada": "Pedidos no estado PAGO",
+        "acao": "offer adiciona ao final",
+        "saida": "Fila na ordem de aprovação",
+        "porQue": "A regra de negócio precisa ser validada antes da entrada na coleção.",
+        "explicacao": [
+          "O pagamento muda o pedido para PAGO. A fila aceita somente esse estado para evitar separar uma compra ainda sem confirmação.",
+          "offer inclui cada pedido no final. A posição representa chegada, não prioridade: FIFO faz sentido porque a regra é manter a ordem de aprovação."
+        ],
+        "codigo": [
+          {
+            "arquivo": "src/oficina/dominio/Pedido.java",
+            "simbolo": "confirmarPagamento"
+          },
+          {
+            "arquivo": "src/oficina/casos/FilaSeparacao.java",
+            "simbolo": "agendar"
+          }
+        ],
+        "decisao": {
+          "pergunta": "Pedido pago e ID ainda não agendado?",
+          "sim": "Entra no final da fila",
+          "nao": "Não é agendado novamente"
+        },
+        "pergunta": "Seria válido enfileirar um pedido sem pagamento?",
+        "resposta": "Não. A validação protege a transição para separação."
+      },
+      {
+        "titulo": "Consultar a cabeça sem remover",
+        "estrutura": "peek + HashSet",
+        "entrada": "Fila preenchida e reentrega de PED-101",
+        "acao": "Consultar o próximo e conferir o ID",
+        "saida": "Cabeça preservada; duplicata ignorada",
+        "porQue": "Observar o próximo item não deve consumi-lo. Deduplicar é uma necessidade adicional à ordem FIFO.",
+        "explicacao": [
+          "peek retorna o próximo sem retirar nada. A fila segue com os mesmos pedidos depois da consulta.",
+          "O HashSet responde se um ID já foi agendado. A Queue sozinha permitiria repetições; o conjunto fornece a regra complementar."
+        ],
+        "codigo": [
+          {
+            "arquivo": "src/oficina/casos/FilaSeparacao.java",
+            "simbolo": "consultarProximo"
+          },
+          {
+            "arquivo": "src/oficina/casos/FilaSeparacao.java",
+            "simbolo": "agendar"
+          }
+        ],
+        "pergunta": "Por que a Queue sozinha não evita a repetição?",
+        "resposta": "Ela organiza a ordem de saída; a deduplicação é outra necessidade, atendida pelo conjunto."
+      },
+      {
+        "titulo": "Retirar o próximo e mudar o estado",
+        "estrutura": "poll + Optional",
+        "entrada": "Fila de pedidos pagos",
+        "acao": "Retirar a cabeça e iniciar separação",
+        "saida": "Quatro pedidos EM_SEPARACAO; fila vazia",
+        "porQue": "Consumir deve remover o próximo item e aplicar a transição de negócio.",
+        "explicacao": [
+          "poll retira o primeiro elemento. iniciarSeparacao devolve um pedido com o novo estado, preservando o valor anterior do objeto imutável.",
+          "Quando a fila acaba, iniciarProximo retorna Optional.empty. Estar vazia é uma situação normal; o chamador trata a ausência sem acessar um valor inexistente."
+        ],
+        "codigo": [
+          {
+            "arquivo": "src/oficina/casos/FilaSeparacao.java",
+            "simbolo": "iniciarProximo"
+          },
+          {
+            "arquivo": "src/oficina/dominio/Pedido.java",
+            "simbolo": "iniciarSeparacao"
+          }
+        ],
+        "pergunta": "Por que retornar Optional em vez de lançar erro quando a fila acaba?",
+        "resposta": "Não haver próximo pedido é um resultado normal da consulta."
+      }
+    ],
+    "conclusao": {
+      "resultado": "Os quatro pedidos iniciaram separação em FIFO. A reentrega de PED-101 não criou trabalho duplicado.",
+      "porque": "Queue organiza a saída; HashSet controla unicidade; Optional expressa ausência; Pedido protege as mudanças de estado.",
+      "aplicacao": "Separação de pedidos, filas locais de trabalho e rotinas sequenciais.",
+      "limite": "Fila e IDs existem em memória e não sobrevivem a uma reinicialização.",
+      "pergunta": "Por que a fila não basta para impedir duplicatas?",
+      "resposta": "Manter a ordem e garantir unicidade são operações diferentes."
+    },
+    "codigoInicial": [
+      {
+        "arquivo": "src/oficina/dominio/Pedido.java"
+      }
+    ],
+    "codigoFinal": [
+      {
+        "arquivo": "src/oficina/casos/FilaSeparacao.java"
+      }
+    ]
+  },
+  {
+    "id": 3,
+    "titulo": "Desfazer configurações",
+    "linguagem": "Java",
+    "grupo": "Ordem e consultas",
+    "estruturas": [
+      "Deque",
+      "Snapshots",
+      "Optional"
+    ],
+    "contexto": "Durante um incidente, alteramos timeout e diagnóstico. Precisamos desfazer as mudanças na ordem inversa.",
+    "pergunta": "Qual mudança deve ser desfeita primeiro?",
+    "fontes": [
+      "src/oficina/casos/EditorConfiguracao.java",
+      "src/oficina/dominio/ConfiguracaoAplicacao.java"
+    ],
+    "objetivo": "Restaurar configurações anteriores durante um incidente, desfazendo a mudança mais recente primeiro.",
+    "entrada": "Timeout inicial de dois segundos e diagnóstico desligado; depois o timeout sobe para cinco segundos e o diagnóstico é ativado.",
+    "resultadoEsperado": "Desfazer diagnóstico e depois timeout, voltando ao estado inicial.",
+    "termos": [
+      [
+        "Snapshot",
+        "Cópia lógica dos valores de um estado em certo instante."
+      ],
+      [
+        "LIFO",
+        "Last in, first out: o último a entrar é o primeiro a sair."
+      ],
+      [
+        "Deque",
+        "Coleção com operações nas duas pontas. Com push e pop, pode funcionar como pilha."
+      ]
+    ],
+    "etapas": [
+      {
+        "titulo": "Identificar o estado completo",
+        "estrutura": "ConfiguracaoAplicacao",
+        "entrada": "Timeout 2 s; diagnóstico desligado",
+        "acao": "Guardar o objeto atual",
+        "saida": "Snapshot inicial imutável",
+        "porQue": "Para restaurar, precisamos saber quais valores formam uma configuração completa.",
+        "explicacao": [
+          "O estado não é só uma mensagem como 'mudou timeout'. Ele contém os valores efetivamente usados pela aplicação.",
+          "O record é imutável. Cada alteração gera uma configuração nova; o histórico pode preservar o objeto antigo sem que seus campos mudem depois."
+        ],
+        "codigo": [
+          {
+            "arquivo": "src/oficina/dominio/ConfiguracaoAplicacao.java"
+          },
+          {
+            "arquivo": "src/oficina/casos/EditorConfiguracao.java",
+            "simbolo": "EditorConfiguracao"
+          }
+        ],
+        "pergunta": "Guardar só a descrição da mudança restauraria o estado?",
+        "resposta": "Não necessariamente. O snapshot contém os valores necessários para voltar."
+      },
+      {
+        "titulo": "Guardar o estado antes de alterar",
+        "estrutura": "Deque.push",
+        "entrada": "Configuração atual e novo valor",
+        "acao": "push(atual) e troca da configuração",
+        "saida": "Histórico com dois snapshots",
+        "porQue": "Guardar depois da alteração faria perder o estado que queremos recuperar.",
+        "explicacao": [
+          "Antes de aumentar o timeout, o editor coloca a configuração antiga no topo. Antes de ativar diagnóstico, repete a mesma operação.",
+          "Cada snapshot é uma entrada do Deque. O mais recente fica disponível primeiro para desfazer, obedecendo LIFO."
+        ],
+        "codigo": [
+          {
+            "arquivo": "src/oficina/casos/EditorConfiguracao.java",
+            "simbolo": "atualizar"
+          }
+        ],
+        "pergunta": "O histórico guarda o estado antes ou depois da mudança?",
+        "resposta": "Antes. É esse valor que deve voltar quando chamamos desfazer."
+      },
+      {
+        "titulo": "Desfazer em ordem inversa",
+        "estrutura": "Deque.pop + Optional",
+        "entrada": "Histórico com snapshots",
+        "acao": "Retirar o topo e restaurá-lo",
+        "saida": "5 s/desligado → 2 s/desligado",
+        "porQue": "A última mudança precisa ser desfeita antes das anteriores.",
+        "explicacao": [
+          "pop retira o snapshot mais recente e o torna a configuração atual. A primeira chamada desativa o diagnóstico; a segunda recupera o timeout original.",
+          "Ao terminar o histórico, desfazer devolve Optional.empty e mantém a configuração. Não há estado anterior para inventar ou restaurar."
+        ],
+        "codigo": [
+          {
+            "arquivo": "src/oficina/casos/EditorConfiguracao.java",
+            "simbolo": "desfazer"
+          }
+        ],
+        "decisao": {
+          "pergunta": "Há snapshot no histórico?",
+          "sim": "Restaurar o topo",
+          "nao": "Optional.empty; manter estado"
+        },
+        "pergunta": "Por que uma fila FIFO produziria a ordem errada aqui?",
+        "resposta": "Ela devolveria o estado mais antigo antes do mais recente."
+      }
+    ],
+    "conclusao": {
+      "resultado": "A configuração voltou a timeout de dois segundos e diagnóstico desligado.",
+      "porque": "Uma pilha LIFO corresponde à ordem natural de desfazer. Snapshots imutáveis preservam os valores reais a restaurar.",
+      "aplicacao": "Editores, assistentes e históricos locais de configuração.",
+      "limite": "O histórico é local à execução e não oferece auditoria persistente.",
+      "pergunta": "Qual seria o problema de usar FIFO para desfazer?",
+      "resposta": "A configuração mais antiga sairia antes da mais recente, contrariando a ordem das mudanças."
+    },
+    "codigoInicial": [
+      {
+        "arquivo": "src/oficina/casos/EditorConfiguracao.java"
+      }
+    ],
+    "codigoFinal": [
+      {
+        "arquivo": "src/oficina/casos/EditorConfiguracao.java",
+        "simbolo": "desfazer"
+      }
+    ]
+  },
+  {
+    "id": 4,
+    "titulo": "Encontrar usuários pelo ID",
+    "linguagem": "Java",
+    "grupo": "Ordem e consultas",
+    "estruturas": [
+      "HashMap",
+      "Optional",
+      "Stream"
+    ],
+    "contexto": "Uma API precisa localizar uma conta e decidir se ela está ativa para receber um aviso.",
+    "pergunta": "Quando conhecemos o ID, precisamos percorrer toda a lista?",
+    "fontes": [
+      "src/oficina/casos/RepositorioUsuarios.java",
+      "src/oficina/demonstracoes/ExemplosColecoes.java"
+    ],
+    "objetivo": "Localizar uma conta pelo ID, tratar ausência e inatividade e listar contatos ativos em ordem explícita.",
+    "entrada": "Ana e Clara ativas, Bruno inativo; o ID 999 não existe.",
+    "resultadoEsperado": "Contato de Ana atualizado, ausências tratadas e lista de ativos com Ana e Clara.",
+    "termos": [
+      [
+        "Map",
+        "Associa uma chave a um valor. Aqui Long identifica um objeto Usuario."
+      ],
+      [
+        "HashMap",
+        "Implementação que usa hash para busca por chave; não promete ordem de apresentação."
+      ],
+      [
+        "Optional",
+        "Representa presença ou ausência no resultado de uma consulta."
+      ]
+    ],
+    "etapas": [
+      {
+        "titulo": "Criar um índice por ID",
+        "estrutura": "HashMap<Long, Usuario>",
+        "entrada": "Três objetos Usuario",
+        "acao": "putIfAbsent associa ID ao objeto",
+        "saida": "Índice de contas sem IDs duplicados",
+        "porQue": "Se a operação principal é buscar por ID, um índice por chave é mais adequado que varrer uma lista a cada consulta.",
+        "explicacao": [
+          "A chave é o ID e o valor é o usuário completo. O HashMap localiza a associação sem exigir que a aplicação escreva uma busca por todos os elementos.",
+          "putIfAbsent protege o cadastro contra um ID já ocupado. O mapa fica encapsulado no repositório."
+        ],
+        "codigo": [
+          {
+            "arquivo": "src/oficina/casos/RepositorioUsuarios.java",
+            "simbolo": "cadastrar"
+          }
+        ],
+        "pergunta": "Um HashMap devolve os usuários na ordem de cadastro?",
+        "resposta": "Essa ordem não é garantida. Ela deve ser explicitada quando necessária."
+      },
+      {
+        "titulo": "Consultar e distinguir os resultados",
+        "estrutura": "Map.get + Optional",
+        "entrada": "IDs 1, 2 e 999",
+        "acao": "Buscar e permitir só contas ativas",
+        "saida": "Contato de Ana; Bruno bloqueado; 999 ausente",
+        "porQue": "Encontrar uma conta e decidir se ela atende à regra são perguntas diferentes.",
+        "explicacao": [
+          "buscarPorId transforma o possível null do Map em Optional. filter mantém somente uma conta ativa; map seleciona o e-mail quando há valor.",
+          "Ausência é esperada em uma busca. Um sistema pode responder 'não encontrado' sem fabricar um usuário ou acessar um campo de null."
+        ],
+        "codigo": [
+          {
+            "arquivo": "src/oficina/casos/RepositorioUsuarios.java",
+            "simbolo": "buscarPorId"
+          },
+          {
+            "arquivo": "src/oficina/demonstracoes/ExemplosColecoes.java",
+            "simbolo": "mapa"
+          }
+        ],
+        "decisao": {
+          "pergunta": "Existe usuário ativo para este ID?",
+          "sim": "Mapear para o e-mail",
+          "nao": "Tratar ausência ou inatividade"
+        },
+        "pergunta": "Um ID ausente é igual a um objeto inválido?",
+        "resposta": "Não. A ausência é uma resposta possível; o objeto inválido deve ser rejeitado na entrada."
+      },
+      {
+        "titulo": "Atualizar e ordenar a resposta",
+        "estrutura": "replace + Stream",
+        "entrada": "Conta existente e novo e-mail",
+        "acao": "Atualizar; filtrar ativos; ordenar nomes",
+        "saida": "Ana e Clara em ordem alfabética",
+        "porQue": "O índice resolve acesso por chave; a tela precisa de uma ordem de leitura explícita.",
+        "explicacao": [
+          "replace só altera uma chave existente. A nova conta tem o mesmo ID e outro e-mail; o objeto anterior não é modificado.",
+          "listarAtivos consulta os valores do mapa e usa um Comparator para ordenar por nome e ID. Não depende da ordem interna do HashMap."
+        ],
+        "codigo": [
+          {
+            "arquivo": "src/oficina/casos/RepositorioUsuarios.java",
+            "simbolo": "atualizar"
+          },
+          {
+            "arquivo": "src/oficina/casos/RepositorioUsuarios.java",
+            "simbolo": "listarAtivos"
+          }
+        ],
+        "pergunta": "Por que ordenar se usamos um Map?",
+        "resposta": "Busca por chave e ordem de apresentação são necessidades diferentes."
+      }
+    ],
+    "conclusao": {
+      "resultado": "Ana aparece com o e-mail atualizado; Ana e Clara formam a lista ordenada de ativos; o ID 999 teve ausência tratada.",
+      "porque": "HashMap atende à busca por identidade. Optional documenta a ausência e a consulta com Stream prepara a apresentação.",
+      "aplicacao": "Endpoints por ID, caches locais e cadastros em memória.",
+      "limite": "A ordem do HashMap não é uma ordenação de negócio e o cadastro é apenas local.",
+      "pergunta": "Ter um Map elimina a necessidade de ordenar uma listagem?",
+      "resposta": "Não. Busca por chave e ordem de apresentação são requisitos diferentes."
+    },
+    "codigoInicial": [
+      {
+        "arquivo": "src/oficina/casos/RepositorioUsuarios.java"
+      }
+    ],
+    "codigoFinal": [
+      {
+        "arquivo": "src/oficina/casos/RepositorioUsuarios.java",
+        "simbolo": "listarAtivos"
+      }
+    ]
+  },
+  {
+    "id": 5,
+    "titulo": "Investigar uma janela de logs",
+    "linguagem": "Java",
+    "grupo": "Ordem e consultas",
+    "estruturas": [
+      "TreeMap",
+      "List",
+      "subMap",
+      "flatMap"
+    ],
+    "contexto": "O gateway ficou lento durante um minuto. Precisamos localizar os registros da janela e resumir os erros.",
+    "pergunta": "E se dois logs tiverem exatamente o mesmo timestamp?",
+    "fontes": [
+      "src/oficina/casos/LinhaDoTempoLogs.java",
+      "src/oficina/dominio/RegistroLog.java",
+      "src/oficina/demonstracoes/ExemplosColecoes.java"
+    ],
+    "objetivo": "Investigar os registros de um minuto de incidente, preservando logs que aconteceram no mesmo instante.",
+    "entrada": "Cinco logs fora de ordem, incluindo dois em 12:00:30. A consulta é de 12:00:00 inclusive a 12:01:00 exclusivo.",
+    "resultadoEsperado": "Quatro registros na janela, dois deles erros, com resumo por serviço.",
+    "termos": [
+      [
+        "TreeMap",
+        "Mapa que mantém suas chaves ordenadas; aqui as chaves são instantes."
+      ],
+      [
+        "Intervalo [início, fim)",
+        "Inclui o início e exclui o fim, evitando repetição em janelas consecutivas."
+      ],
+      [
+        "flatMap",
+        "Transforma várias listas de registros em uma sequência única para a consulta."
+      ]
+    ],
+    "etapas": [
+      {
+        "titulo": "Indexar logs pela hora do evento",
+        "estrutura": "TreeMap<Instant, List<RegistroLog>>",
+        "entrada": "Logs fora de ordem e horários repetidos",
+        "acao": "Associar cada instante a uma lista",
+        "saida": "Chaves cronológicas com todos os registros",
+        "porQue": "Precisamos consultar faixas de tempo e não podemos perder dois logs com a mesma chave.",
+        "explicacao": [
+          "TreeMap organiza os instantes automaticamente. A aplicação não precisa implementar nem percorrer os nós internos de uma árvore para obter ordenação.",
+          "Cada chave guarda uma List de logs. Um único RegistroLog por chave poderia ser sobrescrito quando outro evento tivesse exatamente o mesmo timestamp."
+        ],
+        "codigo": [
+          {
+            "arquivo": "src/oficina/casos/LinhaDoTempoLogs.java",
+            "simbolo": "registrar"
+          },
+          {
+            "arquivo": "src/oficina/dominio/RegistroLog.java"
+          }
+        ],
+        "pergunta": "Um Map<Instant, RegistroLog> preservaria logs simultâneos?",
+        "resposta": "Não. Outra inclusão na mesma chave poderia substituir o registro anterior."
+      },
+      {
+        "titulo": "Recortar a janela de investigação",
+        "estrutura": "NavigableMap.subMap + flatMap",
+        "entrada": "Índice cronológico e limites de tempo",
+        "acao": "Selecionar [12:00, 12:01) e reunir listas",
+        "saida": "Quatro logs, incluindo dois no mesmo instante",
+        "porQue": "O recorte usa a ordenação das chaves; reunir as listas preserva os registros simultâneos.",
+        "explicacao": [
+          "subMap escolhe somente as chaves dentro do intervalo. O início entra e o fim fica de fora, para que a próxima janela possa começar no mesmo limite sem repetir aquele evento.",
+          "flatMap percorre as listas de cada chave selecionada e produz um snapshot dos registros. Filtrar por nível ERRO revela dois eventos relevantes da janela."
+        ],
+        "codigo": [
+          {
+            "arquivo": "src/oficina/casos/LinhaDoTempoLogs.java",
+            "simbolo": "consultar"
+          }
+        ],
+        "pergunta": "Por que usar o fim exclusivo em janelas consecutivas?",
+        "resposta": "Para não repetir o registro da fronteira."
+      },
+      {
+        "titulo": "Resumir o volume e localizar o último evento",
+        "estrutura": "groupingBy / counting + lastEntry",
+        "entrada": "Registros da janela e índice global",
+        "acao": "Contar por serviço e consultar a última chave",
+        "saida": "Resumo por serviço e último log conhecido",
+        "porQue": "Investigar requer tanto os registros individuais quanto uma visão resumida do ocorrido.",
+        "explicacao": [
+          "O agrupamento conta quantos registros de cada serviço estão na janela. Ele não substitui nem apaga os registros que sustentam a contagem.",
+          "O último evento global vem da última chave do mapa ordenado. Ele pode estar fora da janela investigada: as duas consultas respondem perguntas diferentes."
+        ],
+        "codigo": [
+          {
+            "arquivo": "src/oficina/casos/LinhaDoTempoLogs.java",
+            "simbolo": "ultimo"
+          },
+          {
+            "arquivo": "src/oficina/demonstracoes/ExemplosColecoes.java",
+            "simbolo": "arvore"
+          }
+        ],
+        "pergunta": "O TreeMap expõe os nós de sua árvore interna?",
+        "resposta": "Não. Aqui observamos ordenação e faixas por sua API pública."
+      }
+    ],
+    "conclusao": {
+      "resultado": "Quatro logs na janela; dois erros. Os registros simultâneos foram preservados e o volume foi resumido por serviço.",
+      "porque": "TreeMap torna faixas cronológicas naturais; List conserva múltiplos valores por instante; a agregação prepara um resumo.",
+      "aplicacao": "Investigação de incidentes, relatórios temporais e índices ordenados em memória.",
+      "limite": "TreeMap expõe operações sobre chaves, não seus nós internos. Os logs desta oficina são locais.",
+      "pergunta": "Por que o valor do mapa é uma lista?",
+      "resposta": "Porque vários eventos podem compartilhar o mesmo timestamp."
+    },
+    "codigoInicial": [
+      {
+        "arquivo": "src/oficina/casos/LinhaDoTempoLogs.java"
+      }
+    ],
+    "codigoFinal": [
+      {
+        "arquivo": "src/oficina/casos/LinhaDoTempoLogs.java",
+        "simbolo": "consultar"
+      }
+    ]
+  },
+  {
+    "id": 12,
+    "titulo": "Explorar uma API de páginas",
+    "linguagem": "Java",
+    "grupo": "Relações entre objetos",
+    "estruturas": [
+      "JSON",
+      "Recursão",
+      "List de filhos",
+      "List linear",
+      "Map por ID",
+      "Optional"
+    ],
+    "contexto": "Uma API de conhecimento retorna páginas aninhadas. A aplicação organiza os filhos, registra o pai de cada página e oferece uma lista para busca e exportação.",
+    "pergunta": "Como transformar uma resposta hierárquica de API em uma lista sem perder quem é o pai de cada página?",
+    "fontes": [
+      "src/oficina/dominio/PaginaApi.java",
+      "src/oficina/casos/PaginaNavegavel.java"
+    ],
+    "objetivo": "Transformar uma resposta hierárquica de API em objetos com filhos, lista linear e navegação ao pai.",
+    "entrada": "JSON fictício de uma wiki, com onze páginas descritas por id, title e children.",
+    "resultadoEsperado": "Uma raiz navegável, uma lista com onze objetos e um índice por ID; expandir a tela não muda esses dados.",
+    "termos": [
+      [
+        "Árvore",
+        "Hierarquia em que cada página filha tem um pai. A raiz é o ponto inicial e não tem pai."
+      ],
+      [
+        "Recursão",
+        "Um método resolve parte da tarefa e chama a si mesmo para tratar os filhos com a mesma regra."
+      ],
+      [
+        "Caso base",
+        "Situação que encerra novas chamadas. Nos dois métodos, uma lista sem filhos devolve lista vazia."
+      ],
+      [
+        "paiId",
+        "Identidade do pai. O Map resolve esse ID em objeto, sem criar referências circulares."
+      ]
+    ],
+    "etapas": [
+      {
+        "titulo": "Ler o contrato JSON da API",
+        "estrutura": "Gson → PaginaApi",
+        "entrada": "id, title e children aninhados",
+        "acao": "Converter JSON em objetos",
+        "saida": "Raiz com listas de páginas filhas",
+        "porQue": "A hierarquia pertence aos dados recebidos. Primeiro conhecemos seu contrato para mapear corretamente.",
+        "explicacao": [
+          "O arquivo simula a resposta de uma API de conhecimento. Gson é o parser pronto: ele converte os campos em um record PaginaApi, incluindo listas de children.",
+          "A visualização recebe dados do backend. Os elementos desenhados na tela não são a fonte da hierarquia; apenas representam os objetos recebidos."
+        ],
+        "codigo": [
+          {
+            "arquivo": "src/oficina/dominio/PaginaApi.java"
+          },
+          {
+            "arquivo": "src/oficina/casos/PaginaNavegavel.java",
+            "simbolo": "carregar"
+          }
+        ],
+        "pergunta": "De onde vem a estrutura: dos dados da API ou da tela que está sendo exibida?",
+        "resposta": "Dos dados JSON da API simulada. A interface apenas renderiza o resultado processado pelo backend."
+      },
+      {
+        "titulo": "Associar o pai durante a recursão",
+        "estrutura": "vincularPais → List<ElementoPagina>",
+        "entrada": "Lista de páginas e ID do pai atual",
+        "acao": "Mapear os filhos com o ID da página",
+        "saida": "Objetos com paiId e List de filhos",
+        "porQue": "Sem registrar o pai agora, uma navegação que comece no filho perderia o caminho de volta.",
+        "explicacao": [
+          "Para cada página, o método chama vincularPais para seus filhos, usando pagina.id() como paiId da próxima chamada. Depois cria o objeto da página e o adiciona ao resultado.",
+          "Se a lista estiver vazia, o for não executa: a chamada retorna uma lista vazia. Esse é o caso base que encerra a descida em cada folha."
+        ],
+        "codigo": [
+          {
+            "arquivo": "src/oficina/casos/PaginaNavegavel.java",
+            "simbolo": "vincularPais"
+          }
+        ],
+        "decisao": {
+          "pergunta": "A lista possui páginas?",
+          "sim": "Mapear cada página e seus filhos",
+          "nao": "Retornar lista vazia"
+        },
+        "pergunta": "Qual é o caso base dessa recursão?",
+        "resposta": "Uma lista vazia: o for não executa e o método retorna uma lista vazia. Uma página sem filhos alcança esse caso naturalmente."
+      },
+      {
+        "titulo": "Produzir uma visão linear da árvore",
+        "estrutura": "listarPaginas → List + Map",
+        "entrada": "Objetos já ligados por filhos e paiId",
+        "acao": "add(pagina) e addAll(lista dos filhos)",
+        "saida": "Lista em pré-ordem com onze objetos",
+        "porQue": "Uma tabela ou exportação precisa percorrer todas as páginas, mesmo as que estão dentro de outras.",
+        "explicacao": [
+          "O segundo método adiciona a página atual primeiro. Em seguida, chama a si mesmo para os filhos e junta a lista devolvida com addAll. A ordem resultante é pai antes dos filhos, chamada pré-ordem.",
+          "A lista guarda referências aos mesmos objetos da árvore. Um Map associa o ID a cada um deles. Percorrer e buscar por identidade são duas necessidades atendidas por visões complementares."
+        ],
+        "codigo": [
+          {
+            "arquivo": "src/oficina/casos/PaginaNavegavel.java",
+            "simbolo": "listarPaginas"
+          }
+        ],
+        "pergunta": "A lista linear precisa copiar ou remover as subárvores?",
+        "resposta": "Não. Ela reúne referências aos mesmos objetos. A árvore e o Map continuam disponíveis para navegar."
+      },
+      {
+        "titulo": "Resolver o pai e navegar nos dois sentidos",
+        "estrutura": "Map + Optional",
+        "entrada": "ID incidente-451",
+        "acao": "Ler paiId e procurar no índice",
+        "saida": "incidentes → operacao; raiz sem pai",
+        "porQue": "A informação registrada no mapeamento permite voltar pela hierarquia sem buscar em toda a lista.",
+        "explicacao": [
+          "paiDe busca a página, lê o paiId e resolve essa chave no Map. Começando em incidente-451, encontramos incidentes e depois operacao.",
+          "Na raiz não existe pai; Optional.empty expressa isso. Na tela, recolher ramos altera apenas o que está visível, e os botões de filhos usam os mesmos IDs para descer."
+        ],
+        "codigo": [
+          {
+            "arquivo": "src/oficina/casos/PaginaNavegavel.java",
+            "simbolo": "paiDe"
+          },
+          {
+            "arquivo": "src/oficina/casos/PaginaNavegavel.java",
+            "simbolo": "buscarPorId"
+          }
+        ],
+        "pergunta": "Recolher um ramo altera as páginas ou apenas a sua exibição?",
+        "resposta": "Apenas a exibição. A lista de filhos e o índice permanecem completos no backend e nos dados da resposta."
+      }
+    ],
+    "conclusao": {
+      "resultado": "Onze páginas estão disponíveis em árvore e lista. Cada filha conhece o pai pelo ID, e a raiz tem paiId nulo.",
+      "porque": "Dois métodos pequenos separam mapear relações de produzir a lista. List preserva a ordem; Map resolve identidades.",
+      "aplicacao": "APIs de conhecimento, menus hierárquicos, categorias e páginas de uma wiki.",
+      "limite": "O contrato é fictício e simplificado. O mapeamento exige IDs únicos e títulos preenchidos.",
+      "pergunta": "Recolher um ramo remove as páginas da lista?",
+      "resposta": "Não. É apenas uma escolha de apresentação; os objetos continuam disponíveis."
+    },
+    "codigoInicial": [
+      {
+        "arquivo": "src/oficina/dominio/PaginaApi.java"
+      }
+    ],
+    "codigoFinal": [
+      {
+        "arquivo": "src/oficina/casos/PaginaNavegavel.java",
+        "simbolo": "vincularPais"
+      },
+      {
+        "arquivo": "src/oficina/casos/PaginaNavegavel.java",
+        "simbolo": "listarPaginas"
+      }
+    ]
+  },
+  {
+    "id": 6,
+    "titulo": "Mapear o impacto entre serviços",
+    "linguagem": "Java",
+    "grupo": "Relações entre objetos",
+    "estruturas": [
+      "Grafo direcionado",
+      "JGraphT",
+      "BFS",
+      "DFS"
+    ],
+    "contexto": "Autenticação falhou. Precisamos encontrar serviços consumidores que podem sofrer impacto e as equipes responsáveis.",
+    "pergunta": "A direção da aresta representa a propagação do impacto?",
+    "fontes": [
+      "src/oficina/dominio/Servico.java",
+      "src/oficina/casos/DependenciasServicos.java"
+    ],
+    "objetivo": "Descobrir quais serviços podem sofrer impacto quando autenticação falha e identificar as equipes responsáveis.",
+    "entrada": "Dependências dirigidas: autenticação fornece para pedidos e pagamentos; ambos fornecem para notificações.",
+    "resultadoEsperado": "Pedidos, pagamentos e notificações alcançados uma vez; uma falha em notificações não volta aos fornecedores.",
+    "termos": [
+      [
+        "Grafo",
+        "Conjunto de vértices e relações. Aqui os vértices são serviços e as arestas representam propagação potencial de impacto."
+      ],
+      [
+        "BFS",
+        "Busca em largura: visita primeiro os vizinhos próximos da origem e depois as próximas camadas."
+      ],
+      [
+        "DFS",
+        "Busca em profundidade: aprofunda um caminho antes de explorar outros."
+      ]
+    ],
+    "etapas": [
+      {
+        "titulo": "Registrar relações com direção",
+        "estrutura": "Grafo direcionado do JGraphT",
+        "entrada": "Serviços fornecedores e consumidores",
+        "acao": "Adicionar arestas fornecedor → consumidor",
+        "saida": "Mapa de propagação de impacto",
+        "porQue": "A direção define a pergunta respondida pelo grafo: quem pode ser afetado a partir deste fornecedor?",
+        "explicacao": [
+          "Uma aresta autenticação → pedidos significa que pedidos depende de uma capacidade de autenticação. As relações são registradas na biblioteca JGraphT.",
+          "Notificações tem dois caminhos de entrada. Isso já mostra por que o problema é um grafo e por que a busca precisa controlar o que foi visitado."
+        ],
+        "codigo": [
+          {
+            "arquivo": "src/oficina/casos/DependenciasServicos.java",
+            "simbolo": "adicionarDependencia"
+          }
+        ],
+        "pergunta": "Notificações deve aparecer duas vezes no resultado?",
+        "resposta": "Não. Os iteradores controlam os vértices visitados."
+      },
+      {
+        "titulo": "Percorrer os serviços alcançáveis",
+        "estrutura": "BFS / DFS prontos",
+        "entrada": "Grafo e origem autenticação",
+        "acao": "Visitar vértices alcançados e reunir equipes",
+        "saida": "Três serviços; equipes sem repetição",
+        "porQue": "A biblioteca executa os percursos e evita repetir o mesmo vértice ao encontrar outro caminho até ele.",
+        "explicacao": [
+          "BFS visita por camadas, enquanto DFS aprofunda um caminho. O resultado de alcançabilidade é o mesmo, embora a ordem de visita possa mudar.",
+          "Depois da busca, map extrai equipes; distinct remove repetições e sorted prepara a apresentação. A aplicação não implementa uma estrutura de grafo própria."
+        ],
+        "codigo": [
+          {
+            "arquivo": "src/oficina/casos/DependenciasServicos.java",
+            "simbolo": "impactadosEmLargura"
+          },
+          {
+            "arquivo": "src/oficina/casos/DependenciasServicos.java",
+            "simbolo": "impactadosEmProfundidade"
+          }
+        ],
+        "pergunta": "A diferença de ordem significa que uma busca perdeu serviços?",
+        "resposta": "Não. São estratégias de travessia diferentes sobre o mesmo grafo."
+      },
+      {
+        "titulo": "Conferir o sentido do impacto",
+        "estrutura": "Grafo dirigido",
+        "entrada": "Origem notificações",
+        "acao": "Seguir somente arestas de saída",
+        "saida": "Nenhum fornecedor alcançado",
+        "porQue": "O impacto definido pelo modelo não anda automaticamente contra a direção das relações.",
+        "explicacao": [
+          "Começar em notificações não encontra autenticação, pedidos ou pagamentos: não há aresta saindo de notificações para esses fornecedores.",
+          "Esse resultado valida a interpretação do modelo. Se a pergunta fosse 'de quem este serviço depende?', a direção ou a consulta precisaria ser outra."
+        ],
+        "codigo": [
+          {
+            "arquivo": "src/oficina/casos/DependenciasServicos.java",
+            "simbolo": "impactadosEmLargura"
+          }
+        ],
+        "pergunta": "O que mudaria se invertêssemos as relações?",
+        "resposta": "Mudaríamos a pergunta que o grafo responde e os vértices alcançáveis."
+      }
+    ],
+    "conclusao": {
+      "resultado": "Autenticação alcança pedidos, pagamentos e notificações. Notificações aparece uma vez apesar dos dois caminhos.",
+      "porque": "Um grafo representa relações compartilhadas; os iteradores prontos controlam visitas e permitem diferentes ordens de percurso.",
+      "aplicacao": "Mapeamento de dependências e investigação de impacto potencial entre serviços.",
+      "limite": "A simulação não modela redundância, contingência ou falhas reais de rede.",
+      "pergunta": "Uma ordem diferente de visita significa que a busca perdeu um serviço?",
+      "resposta": "Não. Compare os alcançáveis; BFS e DFS podem visitar o mesmo conjunto em ordens diferentes."
+    },
+    "codigoInicial": [
+      {
+        "arquivo": "src/oficina/dominio/Servico.java"
+      },
+      {
+        "arquivo": "src/oficina/casos/DependenciasServicos.java"
+      }
+    ],
+    "codigoFinal": [
+      {
+        "arquivo": "src/oficina/casos/DependenciasServicos.java",
+        "simbolo": "impactadosEmLargura"
+      }
+    ]
+  },
+  {
+    "id": 7,
+    "titulo": "Comparar perfis por cosseno",
+    "linguagem": "Python",
+    "grupo": "Estruturas dentro de algoritmos",
+    "estruturas": [
+      "ndarray",
+      "Matriz",
+      "cosine_similarity"
+    ],
+    "contexto": "Duas semanas podem ter volumes diferentes e ainda apresentar a mesma proporção de chamados por área.",
+    "pergunta": "Ter o dobro de chamados significa ter um perfil diferente?",
+    "fontes": [
+      "python/cosseno.py"
+    ],
+    "objetivo": "Comparar a proporção de chamados por área, distinguindo perfil parecido de volume absoluto.",
+    "entrada": "Uma semana [8, 6, 0] e quatro perfis. As colunas representam pedidos, pagamentos e acesso, na mesma ordem.",
+    "resultadoEsperado": "A semana [16, 12, 0] tem escore 1: o dobro do volume, mas a mesma proporção.",
+    "termos": [
+      [
+        "Vetor",
+        "Sequência de números com posições de significado fixo; aqui cada posição representa uma área."
+      ],
+      [
+        "Matriz / ndarray",
+        "Estrutura numérica com linhas e colunas. Cada linha é um perfil e cada coluna uma área."
+      ],
+      [
+        "Cosseno",
+        "Medida que compara a direção dos vetores. Não mede probabilidade nem volume total."
+      ]
+    ],
+    "etapas": [
+      {
+        "titulo": "Alinhar o significado das posições",
+        "estrutura": "ndarray de perfis",
+        "entrada": "Contagens nas três áreas",
+        "acao": "Criar matriz com colunas consistentes",
+        "saida": "Quatro linhas e três colunas",
+        "porQue": "Só podemos comparar posições que representam as mesmas características em todos os perfis.",
+        "explicacao": [
+          "A consulta [8, 6, 0] significa oito chamados de pedidos, seis de pagamentos e nenhum de acesso. Todos os perfis usam exatamente essa ordem de colunas.",
+          "Trocar a ordem de apenas um perfil faria o cálculo comparar áreas diferentes. A estrutura numérica precisa preservar o vínculo entre posição e significado."
+        ],
+        "codigo": [
+          {
+            "arquivo": "python/cosseno.py",
+            "simbolo": "demonstrar"
+          }
+        ],
+        "pergunta": "Podemos trocar a ordem das áreas em apenas um vetor?",
+        "resposta": "Não. As dimensões precisam representar as mesmas features."
+      },
+      {
+        "titulo": "Calcular e ordenar a similaridade",
+        "estrutura": "cosine_similarity + ranking",
+        "entrada": "Consulta e matriz de perfis",
+        "acao": "Comparar a direção e ordenar escores",
+        "saida": "Escores 1, 0,8, 0,6 e 0",
+        "porQue": "A biblioteca fornece o cálculo; a aplicação organiza os dados e interpreta o resultado.",
+        "explicacao": [
+          "cosine_similarity compara a consulta com cada linha da matriz. O perfil [16, 12, 0] mantém a proporção de [8, 6, 0], por isso obtém escore 1.",
+          "O ranking permite ler do mais semelhante ao menos semelhante. As estruturas são arrays numéricos e uma sequência de resultados ordenados, sem implementação manual da fórmula."
+        ],
+        "codigo": [
+          {
+            "arquivo": "python/cosseno.py",
+            "simbolo": "demonstrar"
+          }
+        ],
+        "pergunta": "O escore mede volume absoluto ou probabilidade?",
+        "resposta": "Nenhum deles. Ele mede a semelhança de direção entre os vetores."
+      },
+      {
+        "titulo": "Interpretar o resultado no contexto",
+        "estrutura": "Vetores e escala",
+        "entrada": "Ranking com escores",
+        "acao": "Relacionar direção, proporção e volume",
+        "saida": "Mesmo perfil pode ter volumes diferentes",
+        "porQue": "Um número isolado não explica o comportamento que está sendo comparado.",
+        "explicacao": [
+          "O escore 1 não significa a mesma quantidade de chamados. Significa a mesma direção neste espaço de features. Um perfil pode ter o dobro de cada contagem e continuar alinhado.",
+          "Neste conjunto não negativo, os escores ficam entre 0 e 1. Outras representações podem produzir valores negativos; a interpretação sempre depende das features escolhidas."
+        ],
+        "codigo": [
+          {
+            "arquivo": "python/cosseno.py",
+            "simbolo": "demonstrar"
+          }
+        ],
+        "pergunta": "Um escore zero sempre significa que os dois casos não têm nenhuma relação de negócio?",
+        "resposta": "Não. Neste conjunto ele indica direções ortogonais nas features escolhidas; a interpretação depende da representação."
+      }
+    ],
+    "conclusao": {
+      "resultado": "Semana semelhante: 1; pedidos: 0,8; pagamentos: 0,6; acesso: 0.",
+      "porque": "O array mantém as dimensões alinhadas e a biblioteca compara sua direção. O ranking organiza a leitura dos escores.",
+      "aplicacao": "Comparação de perfis numéricos e análise de distribuições por categoria.",
+      "limite": "Similaridade não significa causalidade, relevância factual ou probabilidade.",
+      "pergunta": "Dobrar todas as contagens altera o perfil relativo?",
+      "resposta": "Não. A proporção e a direção do vetor continuam iguais."
+    },
+    "codigoInicial": [
+      {
+        "arquivo": "python/cosseno.py"
+      }
+    ],
+    "codigoFinal": [
+      {
+        "arquivo": "python/cosseno.py",
+        "simbolo": "demonstrar"
+      }
+    ]
+  },
+  {
+    "id": 8,
+    "titulo": "Processar eventos de pagamento",
+    "linguagem": "Java",
+    "grupo": "Ordem e consultas",
+    "estruturas": [
+      "ArrayBlockingQueue",
+      "HashMap",
+      "HashSet",
+      "Fila de falhas"
+    ],
+    "contexto": "Uma sequência de pagamentos contém repetição e pedido inexistente. A entrada também pode ficar cheia.",
+    "pergunta": "Uma única estrutura resolve ordem, consulta e deduplicação ao mesmo tempo?",
+    "fontes": [
+      "src/oficina/dominio/EventoPagamento.java",
+      "src/oficina/casos/ConsumidorPagamentos.java",
+      "src/oficina/demonstracoes/ProcessamentoEventos.java"
+    ],
+    "objetivo": "Processar entregas de pagamento com limite de entrada, repetição e uma falha preservada para análise.",
+    "entrada": "Seis entregas de evento; o ID 401 se repete e o 404 aponta para um pedido inexistente. A fila comporta três itens.",
+    "resultadoEsperado": "Quatro pagamentos aplicados, uma duplicata ignorada, uma falha registrada e nenhuma entrada pendente.",
+    "termos": [
+      [
+        "Evento",
+        "Mensagem que descreve uma ocorrência e tem um ID estável para identificar reentregas."
+      ],
+      [
+        "Capacidade da fila",
+        "Limite de itens que aguardam processamento. offer informa quando não há espaço."
+      ],
+      [
+        "Idempotência local",
+        "No cenário, lembrar IDs aplicados para não reaplicar uma mensagem repetida. O histórico é apenas em memória."
+      ]
+    ],
+    "etapas": [
+      {
+        "titulo": "Receber sem ultrapassar a capacidade",
+        "estrutura": "ArrayBlockingQueue",
+        "entrada": "Eventos e fila de capacidade três",
+        "acao": "Tentar offer; consumir para abrir espaço",
+        "saida": "Entradas controladas e adiamentos contados",
+        "porQue": "Uma fila limitada torna o acúmulo de trabalho explícito e evita crescimento indefinido neste processo.",
+        "explicacao": [
+          "O produtor tenta incluir cada evento com offer. Quando a fila está cheia, o exemplo processa um item para liberar uma posição antes de incluir o adiado.",
+          "A simulação alterna produtor e consumidor na mesma thread. A escolha de ArrayBlockingQueue mostra capacidade; não transforma a demonstração em um sistema distribuído."
+        ],
+        "codigo": [
+          {
+            "arquivo": "src/oficina/demonstracoes/ProcessamentoEventos.java",
+            "simbolo": "executar"
+          }
+        ],
+        "decisao": {
+          "pergunta": "A fila tem espaço?",
+          "sim": "offer inclui o evento",
+          "nao": "Consumir um e tentar incluir o adiado"
+        },
+        "pergunta": "Por que não deixar a fila crescer sem limite?",
+        "resposta": "A capacidade explicita o limite de acúmulo; em produção isso exige uma estratégia de pressão e operação."
+      },
+      {
+        "titulo": "Aplicar, ignorar duplicata ou preservar falha",
+        "estrutura": "HashSet + HashMap + Queue",
+        "entrada": "Evento retirado e repositório de pedidos",
+        "acao": "Conferir ID, localizar pedido e aplicar",
+        "saida": "Sucesso, duplicado ou falha",
+        "porQue": "Ordem, busca por identidade e deduplicação são operações diferentes; cada estrutura atende uma delas.",
+        "explicacao": [
+          "O HashSet informa se o ID já foi aplicado. Se foi, a mensagem é duplicada. Se ainda não foi, o HashMap localiza o pedido pelo ID.",
+          "Somente depois do sucesso o consumidor registra o ID. Pedido inexistente vai para a fila de análise; uma falha não deve ser confundida com uma mensagem aplicada."
+        ],
+        "codigo": [
+          {
+            "arquivo": "src/oficina/casos/ConsumidorPagamentos.java",
+            "simbolo": "processar"
+          }
+        ],
+        "decisao": {
+          "pergunta": "Evento já aplicado?",
+          "sim": "Ignorar como duplicado",
+          "nao": "Localizar pedido e tentar aplicar"
+        },
+        "pergunta": "Devemos marcar o evento antes de aplicar o pagamento?",
+        "resposta": "Não. Marcar antes de uma falha poderia impedir uma tentativa válida."
+      },
+      {
+        "titulo": "Conferir contadores e pendências",
+        "estrutura": "Contadores + fila de falhas",
+        "entrada": "Resultados do consumo",
+        "acao": "Conciliar entregas e inspecionar falhas",
+        "saida": "6 = 4 aplicados + 1 duplicado + 1 falha",
+        "porQue": "O resultado precisa demonstrar o destino de cada entrega, inclusive o que não virou sucesso.",
+        "explicacao": [
+          "Os contadores mostram seis produzidos, quatro processados, um duplicado e uma falha. A fila de entrada termina vazia; uma mensagem permanece disponível na fila de análise.",
+          "Há três adiamentos por falta de espaço. A observação dessas quantidades ajuda a explicar o fluxo sem esconder repetições ou falhas atrás de um único contador de sucesso."
+        ],
+        "codigo": [
+          {
+            "arquivo": "src/oficina/demonstracoes/ProcessamentoEventos.java",
+            "simbolo": "executar"
+          },
+          {
+            "arquivo": "src/oficina/casos/ConsumidorPagamentos.java",
+            "simbolo": "eventosComFalha"
+          }
+        ],
+        "pergunta": "O Set local garante exatamente uma vez em um sistema distribuído?",
+        "resposta": "Não. Estado persistente e atomicidade exigem outro desenho."
+      }
+    ],
+    "conclusao": {
+      "resultado": "Seis entregas: quatro aplicadas, uma duplicada, uma falha. Três adiamentos; zero pendentes; uma mensagem para análise.",
+      "porque": "Fila limita e ordena; Map localiza pedidos; Set identifica sucessos anteriores; outra fila preserva falhas.",
+      "aplicacao": "Compreensão de consumidores de eventos, filas locais e observabilidade do processamento.",
+      "limite": "Não há broker, persistência ou transação entre pedido e marca de evento. O Set não garante exatamente uma vez em sistemas distribuídos.",
+      "pergunta": "Por que registrar o ID somente depois do sucesso?",
+      "resposta": "Para que uma operação que falhou ainda possa ter uma tentativa válida posteriormente."
+    },
+    "codigoInicial": [
+      {
+        "arquivo": "src/oficina/dominio/EventoPagamento.java"
+      },
+      {
+        "arquivo": "src/oficina/casos/ConsumidorPagamentos.java"
+      }
+    ],
+    "codigoFinal": [
+      {
+        "arquivo": "src/oficina/casos/ConsumidorPagamentos.java",
+        "simbolo": "processar"
+      }
+    ]
+  },
+  {
+    "id": 10,
+    "titulo": "Abrir o HDBSCAN pelas estruturas",
+    "linguagem": "Python",
+    "grupo": "Estruturas dentro de algoritmos",
+    "estruturas": [
+      "ndarray",
+      "KDTree",
+      "CSR",
+      "MST",
+      "Union-find",
+      "Árvore condensada",
+      "dict"
+    ],
+    "contexto": "Nove incidentes fictícios ajudam a observar como um algoritmo transforma dados entre matrizes, árvores, grafos e mapas até encontrar grupos.",
+    "pergunta": "Que informação cada estrutura prepara para a próxima etapa do algoritmo?",
+    "fontes": [
+      "python/hdbscan_exemplo.py"
+    ],
+    "objetivo": "Observar como um algoritmo combina matrizes, árvores, grafos e mapas para agrupar incidentes com perfis próximos.",
+    "entrada": "Nove incidentes fictícios. Só horas para resolução e usuários afetados entram no agrupamento.",
+    "resultadoEsperado": "No padrão min_samples=2 e min_cluster_size=3: dois grupos de quatro e um ruído, com comparação à API completa.",
+    "termos": [
+      [
+        "Feature",
+        "Medida escolhida para representar um registro no cálculo. Número, texto e equipe não são features deste exemplo."
+      ],
+      [
+        "Densidade",
+        "Ideia de quantos pontos próximos existem em uma região. Um ponto isolado precisa alcançar mais longe para encontrar vizinhos."
+      ],
+      [
+        "MST",
+        "Árvore geradora mínima: conecta todos os pontos com peso total mínimo e sem ciclos."
+      ],
+      [
+        "Cluster / ruído",
+        "Um cluster é um grupo selecionado pelo algoritmo. Ruído é um ponto não atribuído a esses grupos, marcado com −1."
+      ]
+    ],
+    "etapas": [
+      {
+        "titulo": "Converter incidentes em uma matriz de pontos",
+        "estrutura": "dataclass → ndarray (9, 2)",
+        "entrada": "Incidentes com campos de negócio",
+        "acao": "Selecionar duas features e padronizar",
+        "saida": "Nove linhas e duas colunas numéricas",
+        "porQue": "Distâncias só fazem sentido depois de escolher medidas e colocar suas escalas em uma representação comparável.",
+        "explicacao": [
+          "Cada linha mantém o vínculo com um ticket A–I. As colunas contêm horas de resolução e usuários afetados. O grupo de atendimento e o resumo ajudam a interpretar depois, mas não entram no cálculo.",
+          "StandardScaler ajusta a escala das duas medidas. O ndarray oferece a organização numérica que as rotinas seguintes esperam, sem misturar campos de identificação com distâncias."
+        ],
+        "codigo": [
+          {
+            "arquivo": "python/hdbscan_exemplo.py",
+            "simbolo": "preparar_incidentes"
+          },
+          {
+            "arquivo": "python/hdbscan_exemplo.py",
+            "simbolo": "Incidente"
+          }
+        ],
+        "pergunta": "Por que padronizar antes de medir distância?",
+        "resposta": "As features têm unidades e escalas diferentes. A escala muda a geometria dos pontos."
+      },
+      {
+        "titulo": "Guardar as distâncias de todos os pares",
+        "estrutura": "ndarray (9, 9)",
+        "entrada": "Matriz de pontos padronizados",
+        "acao": "pairwise_distances calcula os pares",
+        "saida": "Uma distância em cada célula",
+        "porQue": "Precisamos tornar as relações entre pares consultáveis antes de ajustar os pesos por densidade.",
+        "explicacao": [
+          "A linha A e a coluna B indicam a distância entre os incidentes A e B. A diagonal é zero, pois a distância de um ponto até ele mesmo é zero; a matriz é simétrica.",
+          "Materializar todos os pares facilita conferir cada relação nesta amostra pequena. O custo de memória cresce com n², por isso este caminho não é uma recomendação para grandes bases."
+        ],
+        "codigo": [
+          {
+            "arquivo": "python/hdbscan_exemplo.py",
+            "simbolo": "calcular_distancias"
+          }
+        ],
+        "pergunta": "O que a diagonal e a simetria permitem conferir?",
+        "resposta": "A distância de um ponto a ele mesmo é zero; a distância entre A e B é a mesma entre B e A."
+      },
+      {
+        "titulo": "Inspecionar vizinhos em uma árvore espacial",
+        "estrutura": "KDTree + índices + vetor",
+        "entrada": "Nove pontos em duas dimensões",
+        "acao": "Consultar vizinhos e core distance",
+        "saida": "Vizinhos e uma distância de referência por ponto",
+        "porQue": "A distância de um par não descreve sozinha a densidade em volta de um ponto.",
+        "explicacao": [
+          "A KDTree pronta organiza regiões do espaço para consultar vizinhos. Os índices indicam quais linhas da matriz foram encontradas; as distâncias dizem quão perto elas estão.",
+          "Com min_samples=2, o exemplo consulta o ponto e dois vizinhos externos. A última distância é a core distance: maior valor sugere uma vizinhança mais espalhada. Essa consulta é uma inspeção auxiliar; a próxima rotina calcula os core distances da matriz internamente."
+        ],
+        "codigo": [
+          {
+            "arquivo": "python/hdbscan_exemplo.py",
+            "simbolo": "consultar_vizinhos"
+          }
+        ],
+        "pergunta": "A consulta à KDTree substitui o cálculo da rotina seguinte?",
+        "resposta": "Não. É uma inspeção auxiliar; mutual_reachability calcula os core distances da matriz internamente."
+      },
+      {
+        "titulo": "Transformar as relações em grafo ponderado",
+        "estrutura": "Matriz de pesos → CSR",
+        "entrada": "Distâncias e referência de densidade",
+        "acao": "Alcançabilidade mútua ajusta os pesos",
+        "saida": "Grafo com vizinhos e pesos",
+        "porQue": "Os pesos precisam considerar regiões mais isoladas antes de escolher as conexões da hierarquia.",
+        "explicacao": [
+          "Para cada par, a biblioteca usa o maior valor entre sua distância e as core distances dos dois pontos. Assim, a vizinhança espalhada de um ponto influencia seus pesos.",
+          "CSR (Compressed Sparse Row, formato esparso organizado por linhas) representa o grafo com três arrays: indptr delimita as linhas, indices indica vizinhos e data guarda pesos. Aqui o grafo é denso; o formato serve para inspecionar os dados e alimentar a rotina do SciPy, sem promessa de economia de memória."
+        ],
+        "codigo": [
+          {
+            "arquivo": "python/hdbscan_exemplo.py",
+            "simbolo": "construir_grafo"
+          }
+        ],
+        "aprofundamento": [
+          "O peso de alcançabilidade mútua é max(core(i), core(j), distância(i,j)). Sem laços, o grafo desta amostra guarda 72 entradas dirigidas, correspondentes a 36 pares não direcionados."
+        ],
+        "pergunta": "Quais arrays compõem a representação CSR?",
+        "resposta": "indptr delimita linhas; indices identifica vizinhos; data guarda pesos. Aqui o grafo é denso, então não há promessa de economia."
+      },
+      {
+        "titulo": "Manter apenas as conexões essenciais",
+        "estrutura": "Grafo CSR → MST",
+        "entrada": "Grafo de alcançabilidade mútua",
+        "acao": "minimum_spanning_tree conecta com menor peso",
+        "saida": "Oito arestas para nove pontos",
+        "porQue": "A hierarquia pode ser construída a partir da MST, que preserva as conexões necessárias sem carregar todos os pares.",
+        "explicacao": [
+          "Uma árvore conecta todos os seus vértices sem ciclos com n−1 arestas. A MST escolhida pela biblioteca minimiza a soma dos pesos, mantendo os nove pontos conectados.",
+          "A saída vira um array de oito linhas, cada uma com origem, destino e peso. Esse conjunto menor é o que a próxima etapa ordena para acompanhar as uniões."
+        ],
+        "codigo": [
+          {
+            "arquivo": "python/hdbscan_exemplo.py",
+            "simbolo": "construir_mst"
+          }
+        ],
+        "aprofundamento": [
+          "No padrão, a MST tem peso total aproximado 4,8978. A orientação usada para armazenar uma aresta no resultado esparso não transforma o problema em direcionado."
+        ],
+        "pergunta": "Por que não carregar todos os 36 pares para a próxima etapa?",
+        "resposta": "A MST preserva as conexões essenciais para as fusões por distância, com apenas n−1 arestas."
+      },
+      {
+        "titulo": "Registrar as uniões em uma hierarquia",
+        "estrutura": "Arestas + union-find → linkage",
+        "entrada": "Arestas da MST",
+        "acao": "Ordenar pesos e unir componentes",
+        "saida": "Array com filhos, distância e tamanho",
+        "porQue": "Precisamos saber quando os componentes se unem para observar a formação dos grupos em diferentes níveis.",
+        "explicacao": [
+          "As arestas mais leves são consideradas primeiro. A biblioteca constrói o linkage com as fusões: cada linha registra dois filhos, a distância da união e o tamanho do componente.",
+          "Union-find, também chamado de conjuntos disjuntos, mantém quem pertence a cada componente: find localiza seu representante e union junta componentes. A biblioteca faz isso internamente. O DisjointSet do SciPy mostra essas uniões em paralelo, sem substituir o linkage nem escolher os clusters finais."
+        ],
+        "codigo": [
+          {
+            "arquivo": "python/hdbscan_exemplo.py",
+            "simbolo": "construir_hierarquia"
+          },
+          {
+            "arquivo": "python/hdbscan_exemplo.py",
+            "simbolo": "inspecionar_componentes"
+          }
+        ],
+        "pergunta": "Union-find está escolhendo os clusters finais?",
+        "resposta": "Não. Ele auxilia a organizar componentes na construção da hierarquia; a escolha de clusters vem depois."
+      },
+      {
+        "titulo": "Condensar a árvore e comparar estabilidade",
+        "estrutura": "Array estruturado + dict",
+        "entrada": "Hierarquia e tamanho mínimo",
+        "acao": "Condensar ramos e selecionar com EOM",
+        "saida": "Candidatos e rótulos calculados",
+        "porQue": "Nem todo ramo pequeno deve virar grupo; precisamos observar quais agrupamentos persistem quando a densidade muda.",
+        "explicacao": [
+          "A árvore condensada registra parent, child, lambda_val e child_size. min_cluster_size determina quais ramos podem continuar como candidatos; campos nomeados ajudam a ler cada registro.",
+          "Um dict permite consultar a estabilidade pelo ID do grupo. O critério EOM (Excess of Mass) compara a estabilidade de um pai com a melhor soma dos descendentes e seleciona ramos sem sobreposição. A raiz está excluída. Estabilidade bruta e persistência normalizada são medidas diferentes."
+        ],
+        "codigo": [
+          {
+            "arquivo": "python/hdbscan_exemplo.py",
+            "simbolo": "condensar_hierarquia"
+          },
+          {
+            "arquivo": "python/hdbscan_exemplo.py",
+            "simbolo": "selecionar_clusters"
+          }
+        ],
+        "aprofundamento": [
+          "lambda = 1/distância. A estabilidade soma, para os pontos do ramo, o intervalo entre seu nascimento e sua saída.",
+          "No padrão: estabilidade bruta da raiz ≈13,8291; dos dois candidatos ≈108,6007 e ≈77,7490. As persistências normalizadas são ≈0,871 e ≈0,623. IDs de linkage, árvore condensada e rótulos finais são conceitos distintos."
+        ],
+        "pergunta": "Estabilidade bruta e persistência normalizada são a mesma medida?",
+        "resposta": "Não. O exemplo mostra ambas separadamente e EOM usa a estabilidade na seleção."
+      },
+      {
+        "titulo": "Ligar o resultado aos incidentes originais",
+        "estrutura": "Vetor de rótulos alinhado às linhas",
+        "entrada": "Rótulos produzidos pela seleção",
+        "acao": "Associar cada posição ao seu ticket",
+        "saida": "Grupo por incidente ou −1 para ruído",
+        "porQue": "O resultado numérico só vira informação legível quando preserva o vínculo com os registros de entrada.",
+        "explicacao": [
+          "Cada posição do vetor continua correspondendo à linha original A–I. No padrão, A–D ficam em um grupo, E–H em outro, e I recebe −1. Os IDs 0 e 1 são arbitrários e não indicam prioridade.",
+          "IAM e Pagamentos são contexto posterior: o algoritmo não aprendeu essas categorias. A mesma estrutura de saída permite ver outros resultados ao mudar os parâmetros."
+        ],
+        "codigo": [
+          {
+            "arquivo": "python/hdbscan_exemplo.py",
+            "simbolo": "executar_etapas"
+          }
+        ],
+        "pergunta": "O algoritmo aprendeu categorias IAM e Pagamentos?",
+        "resposta": "Não. Esses nomes não entraram no cálculo; são contexto para interpretar os agrupamentos numéricos."
+      },
+      {
+        "titulo": "Comparar com a biblioteca integrada",
+        "estrutura": "HDBSCAN.fit + vetores e persistências",
+        "entrada": "Mesmos pontos, métrica e parâmetros",
+        "acao": "Executar API pública e comparar a partição",
+        "saida": "Conferência do percurso aberto",
+        "porQue": "A última etapa conecta o detalhamento didático à forma integrada normalmente usada na aplicação.",
+        "explicacao": [
+          "A API completa usa algorithm=generic, MST exata e os mesmos parâmetros das etapas abertas. A comparação confere composição dos grupos, pontos de ruído, forças de pertencimento e persistências.",
+          "Os números dos grupos são renumerados para comparar partições equivalentes. probabilities_ representa força de pertencimento, não probabilidade calibrada. A igualdade deste cenário não é um benchmark nem prova equivalência universal."
+        ],
+        "codigo": [
+          {
+            "arquivo": "python/hdbscan_exemplo.py",
+            "simbolo": "executar_hdbscan_completo"
+          },
+          {
+            "arquivo": "python/hdbscan_exemplo.py",
+            "simbolo": "rotulos_canonicos"
+          }
+        ],
+        "pergunta": "O resultado igual neste conjunto prova equivalência em qualquer base?",
+        "resposta": "Não. Ele confere este cenário com a configuração alinhada. probabilities_ mede força de pertencimento, não probabilidade calibrada."
+      }
+    ],
+    "conclusao": {
+      "resultado": "O resultado tem um rótulo por incidente e uma comparação com a API completa. No padrão, há dois grupos de quatro e um ruído; ao alterar parâmetros, leia a saída real da execução.",
+      "porque": "Cada representação prepara a próxima: objetos → matriz → vizinhos e grafo → MST → hierarquia → mapa de estabilidade → rótulos.",
+      "aplicacao": "Inspeção de perfis numéricos de incidentes e estudo das estruturas usadas por algoritmos.",
+      "limite": "Dados fictícios, grafo completo e APIs internas com versões fixadas. Não é um modelo pronto para produção. Força de pertencimento não é probabilidade calibrada.",
+      "pergunta": "Qual estrutura permite associar de volta um rótulo ao incidente?",
+      "resposta": "O vetor mantém a mesma posição das linhas originais, que continuam ligadas aos tickets."
+    },
+    "codigoInicial": [
+      {
+        "arquivo": "python/hdbscan_exemplo.py",
+        "simbolo": "executar_etapas"
+      }
+    ],
+    "codigoFinal": [
+      {
+        "arquivo": "python/hdbscan_exemplo.py",
+        "simbolo": "executar_hdbscan_completo"
+      }
+    ]
+  }
+]

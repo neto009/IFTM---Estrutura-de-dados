@@ -1,10 +1,14 @@
 package oficina;
 
+import com.google.gson.GsonBuilder;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.Map;
 import java.util.Scanner;
 import oficina.demonstracoes.ExemplosColecoes;
 import oficina.demonstracoes.ExemplosPython;
+import oficina.demonstracoes.ExemplosListas;
+import oficina.demonstracoes.ExemploPagina;
 import oficina.demonstracoes.ProcessamentoEventos;
 import oficina.apresentacao.TelaOficina;
 
@@ -15,7 +19,8 @@ public final class Main {
         "Desfazer configurações: Deque e snapshots", "Usuários por ID: HashMap e Optional",
         "Investigação de incidente: TreeMap e logs", "Impacto entre serviços: grafo direcionado",
         "Cosseno em Python: scikit-learn", "Pagamentos por eventos: fila, idempotência e falhas",
-        "Contexto RAG em Python: busca lexical TF-IDF", "HDBSCAN em Python: biblioteca hdbscan"
+        "Arquivo de destinatários: List e Stream", "HDBSCAN em Python: estruturas do algoritmo",
+        "Consulta de banco simulada: List e paginação", "API de páginas: árvore, recursão, List e Map"
     };
     private static final TelaOficina TELA = TelaOficina.paraConsole(System.out);
 
@@ -27,6 +32,8 @@ public final class Main {
                 abrirMenu();
             } else if (argumentos[0].equals("--ajuda") || argumentos[0].equals("-h")) {
                 imprimirAjuda();
+            } else if (argumentos[0].equals("--dados")) {
+                imprimirDados(argumentos);
             } else {
                 executarComando(argumentos);
             }
@@ -74,14 +81,16 @@ public final class Main {
                 numero = switch (escolha) {
                     case "hdbscan" -> 10;
                     case "cosseno" -> 7;
-                    case "rag" -> 9;
+                    case "arquivo" -> 9;
+                    case "banco" -> 11;
+                    case "pagina" -> 12;
                     default -> Integer.parseInt(escolha);
                 };
             } catch (NumberFormatException erro) {
-                throw new IllegalArgumentException("Informe 1 a 10, todos, cosseno, rag ou hdbscan.");
+                throw new IllegalArgumentException("Informe 1 a 12, todos, arquivo, banco, pagina, cosseno ou hdbscan.");
             }
-            if (numero < 1 || numero > 10) {
-                throw new IllegalArgumentException("Informe um número de 1 a 10.");
+            if (numero < 1 || numero > TITULOS.length) {
+                throw new IllegalArgumentException("Informe um número de 1 a " + TITULOS.length + '.');
             }
         }
         if (argumentos.length > 1 && !todos && numero != 10) {
@@ -98,7 +107,7 @@ public final class Main {
     }
 
     private static void executar(int numero, String[] opcoes) {
-        if (numero <= 6 || numero == 8) {
+        if (numero != 7 && numero != 10) {
             TELA.titulo(numero, TITULOS[numero - 1]);
         }
         switch (numero) {
@@ -110,8 +119,10 @@ public final class Main {
             case 6 -> ExemplosColecoes.grafo(TELA);
             case 7 -> ExemplosPython.executar("cosseno", new String[0]);
             case 8 -> ProcessamentoEventos.executar(TELA);
-            case 9 -> ExemplosPython.executar("rag", new String[0]);
+            case 9 -> ExemplosListas.arquivo(TELA);
             case 10 -> ExemplosPython.executar("hdbscan", opcoes);
+            case 11 -> ExemplosListas.banco(TELA);
+            case 12 -> ExemploPagina.executar(TELA);
             default -> throw new IllegalArgumentException("Demonstração inexistente.");
         }
         TELA.encerramento();
@@ -120,15 +131,37 @@ public final class Main {
     private static void imprimirAjuda() {
         TELA.abertura("COMO EXECUTAR");
         TELA.secao("Demonstrações");
-        TELA.linha("sh executar.sh                     Abre o menu");
+        TELA.linha("sh executar.sh                     Abre a oficina no navegador");
+        TELA.linha("sh executar.sh terminal            Abre o menu do terminal");
         TELA.linha("sh executar.sh 1                   Executa uma demonstração");
         TELA.linha("sh executar.sh todos              Executa todas");
-        TELA.linha("sh executar.sh cosseno | rag      Executa Python diretamente");
+        TELA.linha("sh executar.sh arquivo | banco    Listas de arquivo e consulta simulada");
+        TELA.linha("sh executar.sh pagina             Árvore de página e navegação ao pai");
+        TELA.linha("sh executar.sh cosseno | hdbscan  Executa exemplos Python");
+        TELA.linha("sh executar.sh web                Abre a apresentação local no navegador");
         TELA.secao("Opções do HDBSCAN");
         TELA.linha("--debug       Oito etapas e comparação final (padrão)");
         TELA.linha("--resumo      Entrada, rótulos e comparação com a API completa");
         TELA.linha("--etapa N     Exibe etapa 1 a 8 ou comparação 9");
         TELA.linha("--min-samples N      Vizinhos externos, de 1 a 8 (padrão: 2)");
         TELA.linha("--min-cluster-size N De 2 a 9 (padrão: 3)");
+    }
+
+    /** Dados calculados pelos mesmos casos de uso, serializados por uma biblioteca pronta. */
+    private static void imprimirDados(String[] argumentos) {
+        if (argumentos.length != 2) {
+            throw new IllegalArgumentException("--dados requer um número de exemplo.");
+        }
+        Object dados = switch (Integer.parseInt(argumentos[1])) {
+            case 1 -> ExemplosColecoes.carregarBacklog();
+            case 9 -> ExemplosListas.carregarArquivo();
+            case 11 -> ExemplosListas.consultarBanco();
+            case 12 -> {
+                var pagina = ExemploPagina.carregar();
+                yield Map.of("raiz", pagina.raiz(), "elementos", pagina.elementos());
+            }
+            default -> throw new IllegalArgumentException("Dados visuais disponíveis para 1, 9, 11 e 12.");
+        };
+        System.out.println(new GsonBuilder().serializeNulls().create().toJson(dados));
     }
 }

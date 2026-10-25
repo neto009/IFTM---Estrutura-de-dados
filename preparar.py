@@ -8,10 +8,11 @@ import venv
 
 RAIZ = Path(__file__).resolve().parent
 ARTEFATOS_JAVA = (
+    ("com/google/code/gson/gson/2.13.2", "gson-2.13.2.jar"),
+    ("com/google/errorprone/error_prone_annotations/2.41.0", "error_prone_annotations-2.41.0.jar"),
     ("org/jgrapht/jgrapht-core/1.5.2", "jgrapht-core-1.5.2.jar"),
     ("org/jheaps/jheaps/0.14", "jheaps-0.14.jar"),
     ("org/apfloat/apfloat/1.10.1", "apfloat-1.10.1.jar"),
-    ("org/junit/platform/junit-platform-console-standalone/1.11.4", "junit-platform-console-standalone-1.11.4.jar"),
 )
 
 
@@ -41,7 +42,7 @@ def preparar():
         temporario = destino.with_suffix(".jar.part")
         temporario.write_bytes(conteudo)
         temporario.replace(destino)
-    print("Ambiente preparado. Execute: sh executar.sh")
+    print("Ambiente preparado. Abra a oficina: sh executar.sh")
 
 
 if __name__ == "__main__":

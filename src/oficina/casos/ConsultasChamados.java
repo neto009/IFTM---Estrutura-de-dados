@@ -1,16 +1,12 @@
 package oficina.casos;
 
 import java.util.Comparator;
-import java.util.EnumMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
-import java.util.stream.Collectors;
+import java.util.PriorityQueue;
 import oficina.dominio.Chamado;
-import oficina.dominio.Chamado.Prioridade;
 
-/** Consultas sem efeitos colaterais: filtrar e ordenar não alteram o backlog recebido. */
+/** Cada consulta devolve uma coleção nova, preservando o backlog recebido. */
 public final class ConsultasChamados {
     private static final Comparator<Chamado> ORDEM_ATENDIMENTO = Comparator
             .comparingInt((Chamado chamado) -> chamado.prioridade().ordemAtendimento())
@@ -18,27 +14,22 @@ public final class ConsultasChamados {
 
     private ConsultasChamados() { }
 
-    public static Comparator<Chamado> comparadorDeAtendimento() {
-        return ORDEM_ATENDIMENTO;
+    public static List<Chamado> filtrarAbertos(List<Chamado> chamados) {
+        Objects.requireNonNull(chamados, "Backlog é obrigatório.");
+        return chamados.stream()
+                .filter(Chamado::aguardandoAtendimento)
+                .toList();
     }
 
     public static List<Chamado> priorizarAbertos(List<Chamado> chamados) {
-        return List.copyOf(Objects.requireNonNull(chamados, "Backlog é obrigatório.")).stream()
-                .filter(Chamado::aguardandoAtendimento)
+        return filtrarAbertos(chamados).stream()
                 .sorted(ORDEM_ATENDIMENTO)
-                .toList(); // Resultado não modificável e elementos imutáveis.
+                .toList();
     }
 
-    public static Optional<Chamado> proximoParaAtendimento(List<Chamado> chamados) {
-        return List.copyOf(Objects.requireNonNull(chamados, "Backlog é obrigatório.")).stream()
-                .filter(Chamado::aguardandoAtendimento)
-                .min(ORDEM_ATENDIMENTO); // O(n), sem ordenar tudo para obter um único chamado.
-    }
-
-    public static Map<Prioridade, Long> contarAbertosPorPrioridade(List<Chamado> chamados) {
-        return List.copyOf(Objects.requireNonNull(chamados, "Backlog é obrigatório.")).stream()
-                .filter(Chamado::aguardandoAtendimento)
-                .collect(Collectors.groupingBy(Chamado::prioridade,
-                        () -> new EnumMap<>(Prioridade.class), Collectors.counting()));
+    public static PriorityQueue<Chamado> criarFilaDePlantao(List<Chamado> chamados) {
+        PriorityQueue<Chamado> fila = new PriorityQueue<>(ORDEM_ATENDIMENTO);
+        fila.addAll(filtrarAbertos(chamados));
+        return fila;
     }
 }

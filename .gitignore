@@ -1,5 +1,4 @@
-out/
-out-testes/
+.build/
 *.class
 .venv/
 __pycache__/

@@ -1,3 +1,0 @@
-testes/java/oficina/DominioTest.java
-testes/java/oficina/CasosColecoesTest.java
-testes/java/oficina/ConsumoPagamentosTest.java

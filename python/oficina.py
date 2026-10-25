@@ -8,7 +8,6 @@ def main():
     parser = argparse.ArgumentParser(description="Exemplos práticos com bibliotecas Python.")
     exemplos = parser.add_subparsers(dest="exemplo", required=True)
     exemplos.add_parser("cosseno", help="Comparar perfis com cosine_similarity.")
-    exemplos.add_parser("rag", help="Recuperar documentos e montar contexto.")
     agrupamento = exemplos.add_parser("hdbscan", help="Dissecar o HDBSCAN e comparar com a API completa.")
     agrupamento.add_argument("--min-samples", type=int, choices=range(1, 9), default=2,
                              help="Quantidade de vizinhos externos (padrão: 2).")
@@ -22,9 +21,6 @@ def main():
     try:
         if argumentos.exemplo == "cosseno":
             from cosseno import demonstrar
-            demonstrar()
-        elif argumentos.exemplo == "rag":
-            from rag import demonstrar
             demonstrar()
         else:
             from hdbscan_exemplo import demonstrar

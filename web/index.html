@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Oficina · Estruturas de dados na prática</title>
+  <link rel="stylesheet" href="/style.css">
+  <script src="/visuais.js" defer></script>
+  <script src="/aula.js" defer></script>
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/"><span class="brand-symbol" aria-hidden="true">⠿</span><span>Estruturas na prática<small>OFICINA DE JAVA E PYTHON</small></span></a>
+    <div class="tools">
+      <label class="presenter-toggle"><input id="notas-toggle" type="checkbox" checked> Perguntas e conceitos</label>
+      <div class="font-tools" aria-label="Tamanho do texto">
+        <button id="fonte-menor" aria-label="Diminuir texto">A−</button>
+        <button id="fonte-maior" aria-label="Aumentar texto">A+</button>
+      </div>
+      <button id="tela-cheia" class="quiet">Tela cheia ↗</button>
+    </div>
+  </header>
+  <div class="app-layout">
+    <aside class="sidebar" aria-label="Exemplos da oficina">
+      <div class="sidebar-heading"><span class="eyebrow">PERCURSO DA OFICINA</span><span id="quantidade">12 exemplos</span></div>
+      <nav id="catalogo" aria-label="Escolha um exemplo"><p>Carregando exemplos…</p></nav>
+      <p class="sidebar-foot">Dados fictícios. Bibliotecas reais.<br>Um passo de cada vez.</p>
+    </aside>
+    <main id="conteudo" tabindex="-1">
+      <section class="lesson-heading">
+        <div class="eyebrow" id="categoria">ESTRUTURAS DE DADOS</div>
+        <h1 id="titulo">Vamos acompanhar os dados.</h1>
+        <p id="contexto" class="context"></p>
+        <div id="estruturas" class="chips" aria-label="Estruturas deste exemplo"></div>
+        <div class="run-row">
+          <button id="executar" class="primary" disabled>Executar exemplo <span aria-hidden="true">→</span></button>
+          <code id="comando"></code>
+          <div id="parametros" class="parameters" hidden>
+            <label>min_samples <input id="min-samples" type="number" min="1" max="8" value="2"></label>
+            <label>min_cluster_size <input id="min-cluster-size" type="number" min="2" max="9" value="3"></label>
+          </div>
+        </div>
+        <p id="erro" role="alert" class="error" hidden></p>
+        <p id="status" role="status" class="status">Escolha um exemplo e clique em Executar.</p>
+      </section>
+
+      <section id="vazio" class="preparation-card" aria-label="Problema e percurso do exemplo"></section>
+
+      <div id="apresentacao" hidden>
+        <nav id="etapas" class="steps" aria-label="Etapas do exemplo"></nav>
+        <nav class="navigation" aria-label="Navegação entre etapas">
+          <button id="anterior" class="quiet">← Etapa anterior</button>
+          <span id="progresso"></span>
+          <button id="proximo" class="primary">Próxima etapa →</button>
+          <small>Use também as teclas ← e →</small>
+          <div class="active-source"><span>ACOMPANHE NO CÓDIGO</span><code id="classe-ativa"></code><button id="ir-codigo" class="text-button">Ver trecho ↓</button></div>
+        </nav>
+        <div class="lesson-grid">
+          <article class="stage-card" aria-labelledby="etapa-titulo">
+            <div class="stage-kicker"><span class="eyebrow" id="etapa-numero"></span><button id="reiniciar" class="text-button">Rever do início ↺</button></div>
+            <h2 id="etapa-titulo"></h2>
+            <div id="explicacao"></div>
+            <h3 id="resultado-titulo" class="result-heading">O que aconteceu nesta execução</h3>
+            <div id="log" class="log" aria-live="polite"></div>
+          </article>
+          <aside id="roteiro" class="presenter-card" aria-label="Pergunta e conexão do exemplo">
+            <div class="eyebrow">PERGUNTA DESTA ETAPA</div>
+            <section class="question">
+              <h3>Para refletir</h3>
+              <p id="pergunta"></p>
+              <details id="resposta-container"><summary>Explorar resposta</summary><p id="resposta"></p></details>
+            </section>
+            <div class="bridge" id="painel-proximo" hidden><span id="proximo-label"></span><p id="ponte"></p></div>
+          </aside>
+        </div>
+
+        <section id="arvore" class="tree-card" hidden>
+          <div class="eyebrow">API DE PÁGINAS · ÁRVORE E LISTA</div>
+          <h2>Uma hierarquia, dois sentidos de navegação.</h2>
+          <p>O backend lê uma resposta JSON, associa os pais e devolve a árvore e a lista linear. Selecione uma página ou use as setas dos ramos para explorar a hierarquia.</p>
+          <div class="tree-toolbar">
+            <code>GET /api/paginas</code>
+            <span id="arvore-contagem"></span>
+            <button id="expandir-tudo" class="quiet">Expandir tudo</button>
+            <button id="recolher-tudo" class="quiet">Recolher tudo</button>
+          </div>
+          <div class="tree-layout">
+            <div id="nos" class="tree-nodes" aria-label="Hierarquia de páginas"></div>
+            <div class="node-info">
+              <span class="eyebrow">PÁGINA SELECIONADA</span>
+              <h3 id="no-atual"></h3>
+              <dl><dt>id</dt><dd id="no-id"></dd><dt>paiId</dt><dd id="no-pai"></dd><dt>filhos</dt><dd id="no-filhos"></dd><dt>Caminho</dt><dd id="no-caminho"></dd></dl>
+              <button id="subir-pai" class="quiet">↑ Navegar para o pai</button>
+            </div>
+          </div>
+          <div class="recursion-flow">
+            <div><span>01 · VINCULAR PAIS</span><p>Para cada página, mapear seus filhos com o ID dela como pai. Retornar a lista de objetos.</p></div>
+            <div><span>02 · GERAR A LISTA</span><p>Adicionar a página e juntar a lista dos seus filhos com <code>addAll</code>. Retornar a lista linear.</p></div>
+            <p class="base-case">Caso base nos dois métodos: uma lista vazia retorna uma lista vazia.</p>
+          </div>
+          <details class="api-contract"><summary>Explorar o contrato JSON recebido da API</summary><pre id="resposta-api"></pre></details>
+        </section>
+
+        <section id="codigo" class="code-follow" aria-label="Classe e método desta etapa">
+          <div class="eyebrow">CLASSE E MÉTODO DESTA ETAPA</div>
+          <h2 id="codigo-titulo">Acompanhe a implementação</h2>
+          <div id="fontes-seletor" class="source-tabs"></div>
+          <div class="source-toolbar"><code id="fonte-path"></code><button id="copiar-path" class="quiet">Copiar caminho</button><label><input id="classe-completa" type="checkbox"> Classe completa</label></div>
+          <p id="codigo-descricao" class="visual-caption"></p>
+          <pre id="fonte-trecho" class="numbered-code"></pre>
+        </section>
+        <div class="support-panels">
+          <details><summary>Ver a saída completa do backend</summary><pre id="saida-completa"></pre></details>
+        </div>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

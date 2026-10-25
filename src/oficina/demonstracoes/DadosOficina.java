@@ -24,12 +24,12 @@ public final class DadosOficina {
 
     public static List<Chamado> chamados() {
         return List.of(
-                new Chamado(101, "Checkout retorna erro 500", "Pagamentos", Prioridade.CRITICA, Status.ABERTO),
                 new Chamado(102, "Ajustar texto da página de ajuda", "Portal", Prioridade.BAIXA, Status.ABERTO),
+                new Chamado(105, "Atualizar versão do driver JDBC", "Plataforma", Prioridade.MEDIA, Status.EM_ATENDIMENTO),
+                new Chamado(106, "Lentidão no cálculo de frete", "Pedidos", Prioridade.ALTA, Status.ABERTO),
                 new Chamado(103, "Corrigir conciliação duplicada", "Pagamentos", Prioridade.ALTA, Status.RESOLVIDO),
                 new Chamado(104, "Login bloqueado após renovação", "Identidade", Prioridade.CRITICA, Status.ABERTO),
-                new Chamado(105, "Atualizar versão do driver JDBC", "Plataforma", Prioridade.MEDIA, Status.EM_ATENDIMENTO),
-                new Chamado(106, "Lentidão no cálculo de frete", "Pedidos", Prioridade.ALTA, Status.ABERTO));
+                new Chamado(101, "Checkout retorna erro 500", "Pagamentos", Prioridade.CRITICA, Status.ABERTO));
     }
 
     public static List<Pedido> pedidosAguardandoPagamento() {

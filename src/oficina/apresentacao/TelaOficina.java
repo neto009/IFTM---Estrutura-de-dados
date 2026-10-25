@@ -33,11 +33,6 @@ public final class TelaOficina {
         return new TelaOficina(saida, enabled);
     }
 
-    /** Construtor explícito para demonstrar em testes ou capturar uma saída. */
-    public static TelaOficina simples(PrintStream saida) {
-        return new TelaOficina(saida, false);
-    }
-
     public void titulo(int numero, String titulo) {
         saida.println();
         saida.println(estilo("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━", CIANO));
@@ -71,6 +66,13 @@ public final class TelaOficina {
 
     public void linha(String texto) {
         saida.println("    " + texto);
+    }
+
+    public void explicarEtapa(String entrada, String motivo, String escolha, String resultado) {
+        linha("Entrada: " + entrada);
+        linha("Por que agora: " + motivo);
+        linha("Escolha: " + escolha);
+        linha("Saída: " + resultado);
     }
 
     public void valor(String rotulo, Object valor) {

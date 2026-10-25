@@ -26,45 +26,65 @@ import oficina.dominio.Usuario;
 public final class ExemplosColecoes {
     private ExemplosColecoes() { }
 
-    public static void listas(TelaOficina tela) {
-        tela.objetivo("decidir qual chamado aberto o time deve atender primeiro.");
-        tela.passos("manter o backlog → filtrar e resumir chamados → receber um incidente novo → consultar a fila por prioridade.");
-        List<Chamado> backlog = new ArrayList<>(DadosOficina.chamados());
-        tela.etapa(1, "Filtrar o backlog e ordenar os chamados abertos");
-        tela.linha("A lista conserva todos os chamados; a triagem exclui resolvidos e itens já em atendimento.");
-        tela.valor("Backlog carregado", backlog.size() + " chamados");
-        tela.secao("Top 3 abertos: filter → sort por prioridade e ID → limit → map");
-        ConsultasChamados.priorizarAbertos(backlog).stream().limit(3)
-                .map(ExemplosColecoes::resumirChamado).forEach(tela::resultado);
+    public record DadosBacklog(List<Chamado> recebidos, List<Chamado> abertos,
+                               List<Chamado> priorizados, Chamado novoIncidente,
+                               List<Chamado> atendimentos) { }
 
-        tela.etapa(2, "Contar chamados e encontrar somente o próximo");
-        tela.linha("groupingBy/counting resume as prioridades; min encontra um item sem ordenar a lista toda.");
-        tela.valor("Abertos por prioridade", ConsultasChamados.contarAbertosPorPrioridade(backlog));
-        ConsultasChamados.proximoParaAtendimento(backlog).map(ExemplosColecoes::resumirChamado)
-                .ifPresentOrElse(texto -> tela.valor("Próximo atendimento", texto),
-                        () -> tela.aviso("Nenhum chamado aguardando atendimento."));
-        tela.resultado("A consulta não alterou os " + backlog.size() + " itens originais.");
-
-        tela.etapa(3, "Receber um incidente enquanto o plantão está em andamento");
-        tela.linha("A PriorityQueue aplica o mesmo comparador; poll() retira o próximo chamado prioritário.");
-        PriorityQueue<Chamado> filaPlantao = new PriorityQueue<>(ConsultasChamados.comparadorDeAtendimento());
-        for (Chamado chamado : backlog) {
-            if (chamado.aguardandoAtendimento()) {
-                filaPlantao.offer(chamado);
-            }
-        }
-        Chamado incidente = new Chamado(107, "Indisponibilidade geral de autenticação", "Identidade",
+    public static DadosBacklog carregarBacklog() {
+        List<Chamado> recebidos = DadosOficina.chamados();
+        List<Chamado> abertos = ConsultasChamados.filtrarAbertos(recebidos);
+        List<Chamado> priorizados = ConsultasChamados.priorizarAbertos(recebidos);
+        Chamado novo = new Chamado(107, "Indisponibilidade geral de autenticação", "Identidade",
                 Chamado.Prioridade.CRITICA, Chamado.Status.ABERTO);
-        filaPlantao.offer(incidente);
-        tela.aviso("Novo incidente crítico recebido: " + incidente.titulo());
-        tela.secao("Próximos atendimentos: PriorityQueue.poll()");
-        for (int posicao = 1; posicao <= 3 && !filaPlantao.isEmpty(); posicao++) {
-            Chamado proximo = filaPlantao.poll();
-            tela.resultado("%dº  %s".formatted(posicao, resumirChamado(proximo)));
+        PriorityQueue<Chamado> fila = ConsultasChamados.criarFilaDePlantao(recebidos);
+        fila.offer(novo);
+        List<Chamado> atendimentos = new ArrayList<>();
+        while (!fila.isEmpty()) {
+            atendimentos.add(fila.poll());
         }
-        tela.dica("ArrayList mantém o backlog para consultas; PriorityQueue entrega o próximo por prioridade.");
-        tela.dica("peek() consulta em O(1); offer()/poll() custam O(log n); a iteração não é ordenada.");
-        tela.dica("Para obter um item, min examina O(n) chamados; sorted ordena em O(n log n).");
+        return new DadosBacklog(recebidos, abertos, priorizados, novo, List.copyOf(atendimentos));
+    }
+
+    public static void listas(TelaOficina tela) {
+        DadosBacklog dados = carregarBacklog();
+        tela.objetivo("organizar chamados que chegaram fora de ordem sem apagar o backlog original.");
+        tela.passos("observar a lista → filtrar abertos → ordenar por prioridade → atender novas chegadas.");
+
+        tela.etapa(1, "Receber uma lista que ainda não está organizada para atendimento");
+        tela.explicarEtapa("Seis chamados na ordem em que chegaram à aplicação.",
+                "A posição na lista não representa urgência: um ajuste de texto chegou antes de uma falha crítica.",
+                "List<Chamado> mantém os objetos e a ordem recebida; cada posição pode ser percorrida.",
+                "Uma fonte preservada para comparar com as consultas seguintes.");
+        dados.recebidos().stream().map(ExemplosColecoes::resumirChamado).forEach(tela::linha);
+        tela.valor("Ordem recebida", dados.recebidos().stream().map(Chamado::id).toList());
+
+        tela.etapa(2, "Separar somente os chamados que aguardam atendimento");
+        tela.explicarEtapa("A lista completa, incluindo resolvidos e itens em atendimento.",
+                "O plantão deve escolher entre os que ainda estão ABERTOS.",
+                "filter testa cada objeto; toList materializa uma nova List com os aprovados pelo predicado.",
+                "IDs 102, 106, 104 e 101, ainda na ordem recebida.");
+        dados.abertos().stream().map(ExemplosColecoes::resumirChamado).forEach(tela::resultado);
+        tela.valor("Fonte / resultado", dados.recebidos().size() + " / " + dados.abertos().size());
+
+        tela.etapa(3, "Ordenar a nova lista e escolher os três primeiros");
+        tela.explicarEtapa("Os quatro chamados abertos, ainda sem ordem de urgência.",
+                "Críticos devem vir antes dos altos e baixos; o ID desempata prioridades iguais.",
+                "sorted usa um Comparator explícito; limit(3) seleciona a parte que será apresentada.",
+                "Ordem 101, 104, 106 e 102; os três primeiros são 101, 104 e 106.");
+        tela.valor("Antes", dados.abertos().stream().map(Chamado::id).toList());
+        tela.valor("Depois", dados.priorizados().stream().map(Chamado::id).toList());
+        dados.priorizados().stream().limit(3).map(ExemplosColecoes::resumirChamado).forEach(tela::resultado);
+        tela.dica("A consulta conserva a fonte original: filtrar e ordenar não apagaram seus seis chamados.");
+
+        tela.etapa(4, "Receber um incidente novo durante o plantão");
+        tela.explicarEtapa("Os abertos e um novo chamado crítico, ID 107.",
+                "Quando novas tarefas chegam continuamente, precisamos retirar a próxima pela mesma regra.",
+                "PriorityQueue é uma fila pronta por prioridade: offer insere e poll retira o próximo.",
+                "A ordem de retirada é 101, 104, 107, 106 e 102. O novo crítico fica antes dos menos urgentes.");
+        tela.aviso("Chegou: " + resumirChamado(dados.novoIncidente()));
+        dados.atendimentos().stream().map(ExemplosColecoes::resumirChamado).forEach(tela::resultado);
+        tela.dica("A visualização mostra a sequência obtida com poll, não a ordem interna de iteração da fila.");
+        tela.dica("List serve à consulta do conjunto; PriorityQueue serve à retirada contínua do próximo.");
     }
 
     public static void fila(TelaOficina tela) {
