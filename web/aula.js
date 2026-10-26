@@ -56,7 +56,7 @@ const Aula = (() => {
   function inicio(exemplo, navegar, termosAnteriores = []) {
     const painel = no("div", "lesson-intro");
     const fatos = no("div", "lesson-facts single");
-    fatos.append(cartao("O objetivo", exemplo.objetivo));
+    fatos.append(cartao("O que precisamos resolver", exemplo.objetivo));
     painel.append(fatos, fluxo([
       {rotulo:"Dados de entrada",texto:exemplo.entrada,tipo:"input"},
       {rotulo:"Estruturas que vamos usar",texto:exemplo.estruturas.join(" · "),tipo:"process"},

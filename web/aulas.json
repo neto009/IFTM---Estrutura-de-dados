@@ -18,7 +18,7 @@
       "src/oficina/dominio/Chamado.java",
       "src/oficina/casos/ConsultasChamados.java"
     ],
-    "objetivo": "Transformar chamados recebidos fora de ordem em uma sequência de atendimento que respeita urgência e desempate.",
+    "objetivo": "Com seis chamados de suporte recebidos fora da ordem de urgência, manter a lista original, filtrar os que seguem abertos e decidir quem será atendido primeiro por prioridade e, no empate, por ID.",
     "entrada": "Seis objetos Chamado com ID, título, prioridade e status. Eles chegam na ordem 102, 105, 106, 103, 104, 101.",
     "resultadoEsperado": "Uma lista de abertos ordenada e a demonstração de como um novo crítico entra no plantão.",
     "termos": [
@@ -191,7 +191,7 @@
       "src/oficina/demonstracoes/ExemplosListas.java",
       "src/oficina/casos/ImportacaoEmails.java"
     ],
-    "objetivo": "Converter linhas de um arquivo em uma lista de destinatários sem espaços extras, vazios ou repetições.",
+    "objetivo": "Ler um arquivo de destinatários e gerar uma lista de e-mails pronta para uso: remover cabeçalho, espaços, linhas vazias e duplicatas, ignorando diferenças entre letras maiúsculas e minúsculas, e montar o primeiro lote de dois.",
     "entrada": "Um arquivo de uma coluna. Há oito linhas: cabeçalho, espaços, uma linha vazia e e-mails repetidos com caixa diferente.",
     "resultadoEsperado": "Quatro destinatários únicos e um primeiro lote com Ana e Bruno.",
     "termos": [
@@ -317,7 +317,7 @@
       "src/oficina/casos/ConsultaUsuarios.java",
       "src/oficina/demonstracoes/ExemplosListas.java"
     ],
-    "objetivo": "Entender como registros de uma consulta viram uma List<Usuario> paginada e depois uma lista de contatos.",
+    "objetivo": "Simular uma consulta de usuários ativos: filtrar seis registros, ordenar por nome, devolver páginas de dois usuários e montar respostas de contato com apenas nome e e-mail.",
     "entrada": "Seis usuários fictícios; quatro ativos e dois inativos. O tamanho de página é dois.",
     "resultadoEsperado": "Duas páginas com dois ativos, uma página vazia e dois objetos Contato na projeção da primeira página.",
     "termos": [
@@ -440,7 +440,7 @@
       "src/oficina/dominio/Pedido.java",
       "src/oficina/casos/FilaSeparacao.java"
     ],
-    "objetivo": "Iniciar a separação de pedidos pagos na ordem em que foram aprovados e impedir agendamento repetido.",
+    "objetivo": "Ao confirmar pagamentos, agendar cada pedido pago uma única vez e retirar os pedidos na ordem em que foram aprovados, mesmo se a mesma notificação chegar novamente.",
     "entrada": "Quatro pedidos que serão confirmados como pagos; o primeiro será entregue novamente para simular repetição.",
     "resultadoEsperado": "PED-101, PED-102, PED-103 e PED-104 entram em separação, nessa ordem e uma vez cada.",
     "termos": [
@@ -577,7 +577,7 @@
       "src/oficina/casos/EditorConfiguracao.java",
       "src/oficina/dominio/ConfiguracaoAplicacao.java"
     ],
-    "objetivo": "Restaurar configurações anteriores durante um incidente, desfazendo a mudança mais recente primeiro.",
+    "objetivo": "Durante um incidente, guardar o estado anterior de timeout e diagnóstico antes de cada alteração para desfazer as mudanças da mais recente à mais antiga e restaurar a configuração correta.",
     "entrada": "Timeout inicial de dois segundos e diagnóstico desligado; depois o timeout sobe para cinco segundos e o diagnóstico é ativado.",
     "resultadoEsperado": "Desfazer diagnóstico e depois timeout, voltando ao estado inicial.",
     "termos": [
@@ -703,7 +703,7 @@
       "src/oficina/casos/RepositorioUsuarios.java",
       "src/oficina/demonstracoes/ExemplosColecoes.java"
     ],
-    "objetivo": "Localizar uma conta pelo ID, tratar ausência e inatividade e listar contatos ativos em ordem explícita.",
+    "objetivo": "Em um repositório de usuários, buscar uma conta pelo ID, tratar quando o ID não existe, atualizar um e-mail e listar apenas usuários ativos em ordem alfabética.",
     "entrada": "Ana e Clara ativas, Bruno inativo; o ID 999 não existe.",
     "resultadoEsperado": "Contato de Ana atualizado, ausências tratadas e lista de ativos com Ana e Clara.",
     "termos": [
@@ -837,7 +837,7 @@
       "src/oficina/dominio/RegistroLog.java",
       "src/oficina/demonstracoes/ExemplosColecoes.java"
     ],
-    "objetivo": "Investigar os registros de um minuto de incidente, preservando logs que aconteceram no mesmo instante.",
+    "objetivo": "Investigar um minuto de logs do gateway: selecionar todos os eventos entre 12:00 e 12:01, incluindo o início e excluindo o fim, preservar registros com o mesmo horário e contar erros por serviço.",
     "entrada": "Cinco logs fora de ordem, incluindo dois em 12:00:30. A consulta é de 12:00:00 inclusive a 12:01:00 exclusivo.",
     "resultadoEsperado": "Quatro registros na janela, dois deles erros, com resumo por serviço.",
     "termos": [
@@ -965,7 +965,7 @@
       "src/oficina/dominio/PaginaApi.java",
       "src/oficina/casos/PaginaNavegavel.java"
     ],
-    "objetivo": "Transformar uma resposta hierárquica de API em objetos com filhos, lista linear e navegação ao pai.",
+    "objetivo": "Ler o JSON de uma API de páginas hierárquicas, vincular cada página ao pai, manter a árvore para navegar para cima e para baixo e gerar também uma lista e um índice por ID para busca e exportação.",
     "entrada": "JSON fictício de uma wiki, com onze páginas descritas por id, title e children.",
     "resultadoEsperado": "Uma raiz navegável, uma lista com onze objetos e um índice por ID; expandir a tela não muda esses dados.",
     "termos": [
@@ -1125,7 +1125,7 @@
       "src/oficina/dominio/Servico.java",
       "src/oficina/casos/DependenciasServicos.java"
     ],
-    "objetivo": "Descobrir quais serviços podem sofrer impacto quando autenticação falha e identificar as equipes responsáveis.",
+    "objetivo": "Modelar dependências como setas do serviço fornecedor para o consumidor e, quando a autenticação falha, percorrer a rede para listar uma vez cada serviço alcançável e identificar suas equipes responsáveis.",
     "entrada": "Dependências dirigidas: autenticação fornece para pedidos e pagamentos; ambos fornecem para notificações.",
     "resultadoEsperado": "Pedidos, pagamentos e notificações alcançados uma vez; uma falha em notificações não volta aos fornecedores.",
     "termos": [
@@ -1245,14 +1245,14 @@
       "Matriz",
       "cosine_similarity"
     ],
-    "contexto": "Duas semanas podem ter volumes diferentes e ainda apresentar a mesma proporção de chamados por área.",
+    "contexto": "Depois de uma semana com muitos atendimentos, a coordenação quer saber se o tipo de demanda mudou ou se apenas chegaram mais chamados. Para investigar, compara a distribuição por área.",
     "pergunta": "Ter o dobro de chamados significa ter um perfil diferente?",
     "fontes": [
       "python/cosseno.py"
     ],
-    "objetivo": "Comparar a proporção de chamados por área, distinguindo perfil parecido de volume absoluto.",
-    "entrada": "Uma semana [8, 6, 0] e quatro perfis. As colunas representam pedidos, pagamentos e acesso, na mesma ordem.",
-    "resultadoEsperado": "A semana [16, 12, 0] tem escore 1: o dobro do volume, mas a mesma proporção.",
+    "objetivo": "Comparar semanas do suporte pela distribuição de chamados nas áreas Pedidos, Pagamentos e Acesso, encontrando semanas com proporções parecidas mesmo quando o total de chamados é diferente.",
+    "entrada": "A semana em análise tem 14 chamados: [8, 6, 0]. Vamos compará-la com quatro semanas anteriores; cada vetor sempre usa a ordem Pedidos, Pagamentos e Acesso.",
+    "resultadoEsperado": "A semana [16, 12, 0] recebe escore 1: tem o dobro de chamados no total (28 contra 14), mas a mesma distribuição entre as três áreas.",
     "termos": [
       [
         "Vetor",
@@ -1370,7 +1370,7 @@
       "src/oficina/casos/ConsumidorPagamentos.java",
       "src/oficina/demonstracoes/ProcessamentoEventos.java"
     ],
-    "objetivo": "Processar entregas de pagamento com limite de entrada, repetição e uma falha preservada para análise.",
+    "objetivo": "Processar notificações de pagamento numa fila com capacidade para três eventos: aplicar eventos válidos aos pedidos, evitar duplicatas, preservar falhas para análise e contabilizar o que foi adiado.",
     "entrada": "Seis entregas de evento; o ID 401 se repete e o 404 aponta para um pedido inexistente. A fila comporta três itens.",
     "resultadoEsperado": "Quatro pagamentos aplicados, uma duplicata ignorada, uma falha registrada e nenhuma entrada pendente.",
     "termos": [
@@ -1503,12 +1503,12 @@
       "Árvore condensada",
       "dict"
     ],
-    "contexto": "Nove incidentes fictícios ajudam a observar como um algoritmo transforma dados entre matrizes, árvores, grafos e mapas até encontrar grupos.",
+    "contexto": "Uma equipe de suporte quer investigar se os incidentes do ServiceNow se concentram em alguns padrões de duração e impacto, e destacar ocorrências muito fora do padrão.",
     "pergunta": "Que informação cada estrutura prepara para a próxima etapa do algoritmo?",
     "fontes": [
       "python/hdbscan_exemplo.py"
     ],
-    "objetivo": "Observar como um algoritmo combina matrizes, árvores, grafos e mapas para agrupar incidentes com perfis próximos.",
+    "objetivo": "Agrupar nove incidentes fictícios comparando apenas horas para resolução e número de usuários afetados: encontrar grupos com valores próximos nessas medidas, deixar sem grupo estável o caso isolado e comparar o passo a passo com a API do HDBSCAN.",
     "entrada": "Nove incidentes fictícios. Só horas para resolução e usuários afetados entram no agrupamento.",
     "resultadoEsperado": "No padrão min_samples=2 e min_cluster_size=3: dois grupos de quatro e um ruído, com comparação à API completa.",
     "termos": [
