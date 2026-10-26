@@ -30,6 +30,24 @@ public final class ExemplosColecoes {
                                List<Chamado> priorizados, Chamado novoIncidente,
                                List<Chamado> atendimentos) { }
 
+    public record DadosFila(List<Pedido> pedidosNaFila, Pedido proximo,
+                            boolean reentregaIgnorada, List<Pedido> retirados,
+                            int pendentesAposProcessamento, boolean filaVaziaDevolveuAusencia) { }
+
+    public record EstadoConfiguracao(long timeoutMillis, boolean logsDetalhados) { }
+
+    public record DadosPilha(EstadoConfiguracao inicial, EstadoConfiguracao comTimeoutMaior,
+                             EstadoConfiguracao comDiagnostico, List<EstadoConfiguracao> desfeitos,
+                             EstadoConfiguracao estadoFinal) { }
+
+    public record DadosMapa(List<Usuario> cadastrados, Usuario contaAtiva, Usuario contaInativa,
+                            long idInexistente, Usuario contaInexistente, Usuario anaAtualizada,
+                            List<Usuario> contasAtivas) { }
+
+    public record DadosGrafo(List<Servico> vertices, List<DependenciasServicos.Aresta> arestas,
+                             List<Servico> buscaLargura, List<Servico> buscaProfundidade,
+                             List<Servico> impactoPartindoDeNotificacoes) { }
+
     public static DadosBacklog carregarBacklog() {
         List<Chamado> recebidos = DadosOficina.chamados();
         List<Chamado> abertos = ConsultasChamados.filtrarAbertos(recebidos);
@@ -43,6 +61,72 @@ public final class ExemplosColecoes {
             atendimentos.add(fila.poll());
         }
         return new DadosBacklog(recebidos, abertos, priorizados, novo, List.copyOf(atendimentos));
+    }
+
+    public static DadosFila carregarFila() {
+        List<Pedido> pagos = DadosOficina.pedidosAguardandoPagamento().stream()
+                .map(pedido -> pedido.confirmarPagamento(pedido.total())).toList();
+        FilaSeparacao separacao = new FilaSeparacao();
+        pagos.forEach(separacao::agendar);
+        Pedido proximo = separacao.consultarProximo().orElse(null);
+        boolean reentregaIgnorada = !separacao.agendar(pagos.get(0));
+        List<Pedido> retirados = new ArrayList<>();
+        while (separacao.quantidadePendente() > 0) {
+            separacao.iniciarProximo().ifPresent(retirados::add);
+        }
+        boolean filaVaziaDevolveuAusencia = separacao.iniciarProximo().isEmpty();
+        return new DadosFila(pagos, proximo, reentregaIgnorada, List.copyOf(retirados),
+                separacao.quantidadePendente(), filaVaziaDevolveuAusencia);
+    }
+
+    public static DadosPilha carregarPilha() {
+        EditorConfiguracao editor = new EditorConfiguracao(
+                new ConfiguracaoAplicacao(Duration.ofSeconds(2), false));
+        EstadoConfiguracao inicial = estadoConfiguracao(editor.atual());
+        ConfiguracaoAplicacao comTimeoutMaior = new ConfiguracaoAplicacao(Duration.ofSeconds(5), false);
+        editor.atualizar(comTimeoutMaior);
+        EstadoConfiguracao timeoutAtualizado = estadoConfiguracao(editor.atual());
+        ConfiguracaoAplicacao comDiagnostico = new ConfiguracaoAplicacao(Duration.ofSeconds(5), true);
+        editor.atualizar(comDiagnostico);
+        EstadoConfiguracao diagnosticoAtualizado = estadoConfiguracao(editor.atual());
+
+        List<EstadoConfiguracao> desfeitos = new ArrayList<>();
+        while (true) {
+            var anterior = editor.desfazer();
+            if (anterior.isEmpty()) {
+                break;
+            }
+            desfeitos.add(estadoConfiguracao(anterior.orElseThrow()));
+        }
+        return new DadosPilha(inicial, timeoutAtualizado, diagnosticoAtualizado,
+                List.copyOf(desfeitos), estadoConfiguracao(editor.atual()));
+    }
+
+    public static DadosMapa carregarMapa() {
+        List<Usuario> cadastrados = DadosOficina.usuarios();
+        RepositorioUsuarios repositorio = new RepositorioUsuarios();
+        cadastrados.forEach(repositorio::cadastrar);
+        Usuario ativa = repositorio.buscarPorId(1).orElse(null);
+        Usuario inativa = repositorio.buscarPorId(2).orElse(null);
+        long idInexistente = 999;
+        Usuario inexistente = repositorio.buscarPorId(idInexistente).orElse(null);
+        repositorio.buscarPorId(1).ifPresent(ana ->
+                repositorio.atualizar(ana.alterarEmail("ana.suporte@aurora.invalid")));
+        Usuario anaAtualizada = repositorio.buscarPorId(1).orElse(null);
+        return new DadosMapa(cadastrados, ativa, inativa, idInexistente, inexistente,
+                anaAtualizada, repositorio.listarAtivos());
+    }
+
+    public static DadosGrafo carregarGrafo() {
+        DependenciasServicos dependencias = new DependenciasServicos();
+        dependencias.adicionarDependencia(DadosOficina.AUTENTICACAO, DadosOficina.PEDIDOS);
+        dependencias.adicionarDependencia(DadosOficina.AUTENTICACAO, DadosOficina.PAGAMENTOS);
+        dependencias.adicionarDependencia(DadosOficina.PEDIDOS, DadosOficina.NOTIFICACOES);
+        dependencias.adicionarDependencia(DadosOficina.PAGAMENTOS, DadosOficina.NOTIFICACOES);
+        return new DadosGrafo(dependencias.vertices(), dependencias.arestas(),
+                dependencias.impactadosEmLargura(DadosOficina.AUTENTICACAO),
+                dependencias.impactadosEmProfundidade(DadosOficina.AUTENTICACAO),
+                dependencias.impactadosEmLargura(DadosOficina.NOTIFICACOES));
     }
 
     public static void listas(TelaOficina tela) {
@@ -90,86 +174,74 @@ public final class ExemplosColecoes {
     public static void fila(TelaOficina tela) {
         tela.objetivo("colocar na separação apenas pedidos pagos, pela ordem em que foram aprovados.");
         tela.passos("confirmar pagamento → enfileirar cada pedido → ignorar reentrega → retirar em FIFO.");
-        FilaSeparacao separacao = new FilaSeparacao();
-        List<Pedido> pagos = DadosOficina.pedidosAguardandoPagamento().stream()
-                .map(pedido -> pedido.confirmarPagamento(pedido.total())).toList();
+        DadosFila dados = carregarFila();
         tela.etapa(1, "Confirmar pagamento e agendar para separação");
         tela.linha("confirmarPagamento cria pedidos no estado PAGO; agendar rejeita qualquer outro estado.");
-        for (Pedido pedido : pagos) {
-            separacao.agendar(pedido);
+        for (Pedido pedido : dados.pedidosNaFila()) {
             tela.resultado("%s  |  %s  |  R$ %s".formatted(pedido.id(), pedido.cliente(), pedido.total()));
         }
         tela.etapa(2, "Consultar a cabeça e proteger contra uma entrega repetida");
         tela.linha("peek observa o próximo sem removê-lo; HashSet impede agendar o mesmo ID duas vezes.");
-        separacao.consultarProximo().map(Pedido::id)
-                .ifPresent(id -> tela.valor("Peek sem consumir", id));
-        boolean reentregaAgendada = separacao.agendar(pagos.get(0));
-        if (reentregaAgendada) {
+        tela.valor("Peek sem consumir", dados.proximo().id());
+        if (!dados.reentregaIgnorada()) {
             tela.aviso("PED-101 foi agendado novamente; confira a regra de deduplicação.");
         } else {
             tela.resultado("PED-101 já estava na fila; a entrega repetida foi ignorada.");
         }
         tela.etapa(3, "Retirar os pedidos na ordem FIFO");
         tela.linha("poll remove a cabeça; o pedido muda de PAGO para EM_SEPARACAO.");
-        while (separacao.quantidadePendente() > 0) {
-            separacao.iniciarProximo().ifPresent(pedido ->
-                    tela.resultado("%s  →  %s".formatted(pedido.id(), pedido.status())));
+        dados.retirados().forEach(pedido ->
+                tela.resultado("%s  →  %s".formatted(pedido.id(), pedido.status())));
+        if (dados.filaVaziaDevolveuAusencia()) {
+            tela.dica("Fila vazia: Optional.empty indica ausência esperada.");
         }
-        separacao.iniciarProximo().ifPresentOrElse(pedido -> tela.texto(pedido.id()),
-                () -> tela.dica("Fila vazia: Optional.empty indica ausência esperada."));
         tela.dica("Queue/ArrayDeque resolve a ordem FIFO. BigDecimal representa o valor do pedido.");
     }
 
     public static void pilha(TelaOficina tela) {
         tela.objetivo("alterar a configuração durante um incidente e restaurar os estados anteriores.");
         tela.passos("guardar snapshot antes de cada alteração → desfazer do estado mais recente ao mais antigo.");
-        EditorConfiguracao editor = new EditorConfiguracao(new ConfiguracaoAplicacao(Duration.ofSeconds(2), false));
+        DadosPilha dados = carregarPilha();
         tela.etapa(1, "Registrar o estado inicial");
         tela.linha("Timeout e diagnóstico formam um snapshot imutável da configuração.");
-        tela.valor("Configuração", resumirConfiguracao(editor.atual()));
-        editor.atualizar(new ConfiguracaoAplicacao(Duration.ofSeconds(5), false));
+        tela.valor("Configuração", resumirConfiguracao(dados.inicial()));
         tela.etapa(2, "Aplicar duas alterações");
         tela.linha("Cada mudança guarda o estado atual no topo do Deque antes de substituí-lo.");
-        tela.valor("Timeout alterado", resumirConfiguracao(editor.atual()));
-        editor.atualizar(new ConfiguracaoAplicacao(Duration.ofSeconds(5), true));
-        tela.valor("Diagnóstico ativado", resumirConfiguracao(editor.atual()));
+        tela.valor("Timeout alterado", resumirConfiguracao(dados.comTimeoutMaior()));
+        tela.valor("Diagnóstico ativado", resumirConfiguracao(dados.comDiagnostico()));
         tela.etapa(3, "Desfazer em LIFO");
         tela.linha("A primeira chamada recupera o snapshot mais recente; a segunda recupera o anterior.");
-        editor.desfazer().map(ExemplosColecoes::resumirConfiguracao)
-                .ifPresent(config -> tela.resultado("Desfez diagnóstico → " + config));
-        editor.desfazer().map(ExemplosColecoes::resumirConfiguracao)
-                .ifPresent(config -> tela.resultado("Desfez timeout → " + config));
-        editor.desfazer().ifPresentOrElse(config -> tela.texto(resumirConfiguracao(config)),
-                () -> tela.dica("Histórico vazio; a configuração original foi restaurada."));
+        for (int i = 0; i < dados.desfeitos().size(); i++) {
+            String alteracao = i == 0 ? "diagnóstico" : "timeout";
+            tela.resultado("Desfez %s → %s".formatted(alteracao, resumirConfiguracao(dados.desfeitos().get(i))));
+        }
+        tela.dica("Histórico vazio; configuração atual: " + resumirConfiguracao(dados.estadoFinal()));
         tela.dica("Cada entrada é um snapshot imutável; uma mudança igual não cria histórico.");
     }
 
     public static void mapa(TelaOficina tela) {
         tela.objetivo("consultar uma conta pelo ID e decidir se ela pode receber avisos.");
         tela.passos("indexar usuários → buscar pelo ID → tratar conta ausente/inativa → atualizar e listar ativos.");
-        RepositorioUsuarios usuarios = new RepositorioUsuarios();
-        List<Usuario> cadastros = DadosOficina.usuarios();
-        cadastros.forEach(usuarios::cadastrar);
+        DadosMapa dados = carregarMapa();
         tela.etapa(1, "Criar o índice em memória por ID");
         tela.linha("HashMap associa cada chave Long ao objeto Usuario; a busca não percorre a lista inteira.");
-        tela.valor("Contas indexadas", cadastros.size());
+        tela.valor("Contas indexadas", dados.cadastrados().size());
         tela.etapa(2, "Consultar conta ativa ou tratar ausência");
         tela.linha("buscarPorId devolve Optional; filter libera só contas ativas e a ausência recebe uma resposta explícita.");
-        usuarios.buscarPorId(1).filter(Usuario::ativo).map(Usuario::email)
-                .ifPresent(email -> tela.resultado("Contato para avisos: " + email));
-        String contatoInativo = usuarios.buscarPorId(2).filter(Usuario::ativo).map(Usuario::email)
-                .orElse("avisos desativados");
+        if (dados.contaAtiva() != null && dados.contaAtiva().ativo()) {
+            tela.resultado("Contato para avisos: " + dados.contaAtiva().email());
+        }
+        String contatoInativo = dados.contaInativa() != null && dados.contaInativa().ativo()
+                ? dados.contaInativa().email() : "avisos desativados";
         tela.aviso("Conta inativa: " + contatoInativo);
-        usuarios.buscarPorId(999).ifPresentOrElse(usuario -> tela.texto(usuario.nome()),
-                () -> tela.aviso("ID 999 ausente; uma API poderia responder 404."));
+        if (dados.contaInexistente() == null) {
+            tela.aviso("ID " + dados.idInexistente() + " ausente; uma API poderia responder 404.");
+        }
 
         tela.etapa(3, "Atualizar um cadastro existente e listar contas ativas");
         tela.linha("replace altera somente um ID já cadastrado; filter e sort preparam a resposta da API.");
-        Usuario ana = usuarios.buscarPorId(1).orElseThrow(
-                () -> new IllegalStateException("A carga de demonstração deveria conter a usuária Ana."));
-        usuarios.atualizar(ana.alterarEmail("ana.suporte@aurora.invalid"));
         tela.secao("Resultado  |  contas ativas em ordem alfabética");
-        usuarios.listarAtivos().stream()
+        dados.contasAtivas().stream()
                 .map(usuario -> "%s  <%s>".formatted(usuario.nome(), usuario.email()))
                 .forEach(tela::resultado);
         tela.dica("putIfAbsent evita IDs repetidos; a busca por chave custa O(1) em média.");
@@ -208,26 +280,21 @@ public final class ExemplosColecoes {
     public static void grafo(TelaOficina tela) {
         tela.objetivo("descobrir quais serviços e equipes podem ser afetados pela queda de autenticação.");
         tela.passos("modelar fornecedor → consumidor → percorrer o grafo → agrupar equipes sem repetição.");
-        DependenciasServicos dependencias = new DependenciasServicos();
-        dependencias.adicionarDependencia(DadosOficina.AUTENTICACAO, DadosOficina.PEDIDOS);
-        dependencias.adicionarDependencia(DadosOficina.AUTENTICACAO, DadosOficina.PAGAMENTOS);
-        dependencias.adicionarDependencia(DadosOficina.PEDIDOS, DadosOficina.NOTIFICACOES);
-        dependencias.adicionarDependencia(DadosOficina.PAGAMENTOS, DadosOficina.NOTIFICACOES);
-
-        List<Servico> impactados = dependencias.impactadosEmLargura(DadosOficina.AUTENTICACAO);
+        DadosGrafo dados = carregarGrafo();
         tela.etapa(1, "Registrar dependências direcionadas");
         tela.linha("Uma aresta A → B significa que B depende de A; a direção determina quem é alcançado.");
-        tela.linha("autenticacao → pedidos → notificacoes");
-        tela.linha("autenticacao → pagamentos → notificacoes");
+        dados.arestas().forEach(aresta -> tela.linha(
+                aresta.fornecedor().nome() + " → " + aresta.consumidor().nome()));
         tela.etapa(2, "Percorrer serviços alcançáveis e reunir equipes");
         tela.linha("BFS (busca em largura) visita por camadas; DFS (profundidade) aprofunda um caminho.");
         tela.linha("As duas buscas encontram os mesmos serviços alcançáveis, em ordens diferentes.");
-        tela.valor("BFS", nomesServicos(impactados));
-        tela.valor("DFS", nomesServicos(dependencias.impactadosEmProfundidade(DadosOficina.AUTENTICACAO)));
-        tela.valor("Equipes sem repetição", impactados.stream().map(Servico::equipe).distinct().sorted().toList());
+        tela.valor("BFS", nomesServicos(dados.buscaLargura()));
+        tela.valor("DFS", nomesServicos(dados.buscaProfundidade()));
+        tela.valor("Equipes sem repetição", dados.buscaLargura().stream()
+                .map(Servico::equipe).distinct().sorted().toList());
         tela.etapa(3, "Conferir que o impacto não percorre arestas ao contrário");
         tela.resultado("Falha apenas em notificações afeta "
-                + dependencias.impactadosEmLargura(DadosOficina.NOTIFICACOES).size() + " serviços fornecedores.");
+                + dados.impactoPartindoDeNotificacoes().size() + " serviços fornecedores.");
         tela.dica("Os iteradores do JGraphT tratam as visitas; BFS/DFS custam O(V + E).");
     }
 
@@ -239,6 +306,15 @@ public final class ExemplosColecoes {
     private static String resumirConfiguracao(ConfiguracaoAplicacao configuracao) {
         return "%d ms  |  logs detalhados: %s".formatted(
                 configuracao.timeout().toMillis(), configuracao.logsDetalhados() ? "sim" : "não");
+    }
+
+    private static EstadoConfiguracao estadoConfiguracao(ConfiguracaoAplicacao configuracao) {
+        return new EstadoConfiguracao(configuracao.timeout().toMillis(), configuracao.logsDetalhados());
+    }
+
+    private static String resumirConfiguracao(EstadoConfiguracao configuracao) {
+        return "%d ms  |  logs detalhados: %s".formatted(
+                configuracao.timeoutMillis(), configuracao.logsDetalhados() ? "sim" : "não");
     }
 
     private static String nomesServicos(List<Servico> servicos) {

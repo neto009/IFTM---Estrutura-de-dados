@@ -2,7 +2,7 @@
 
 **Uma oficina em Java e Python apresentada na própria página web.**
 
-A página conduz cada cenário do problema ao resultado: explica os termos, desenha o fluxo de cada etapa, executa o exemplo e destaca a classe e o método para acompanhar no editor. Os dados são fictícios; as coleções e os algoritmos usam bibliotecas prontas.
+A página conduz cada cenário do problema ao resultado: apresenta os termos, convida a prever o efeito de cada operação e só então revela a explicação e os dados calculados. A classe e o método correspondentes ficam visíveis para acompanhar no editor. Os dados são fictícios; as coleções e os algoritmos usam bibliotecas prontas.
 
 ## 🚀 Abrir a oficina
 
@@ -33,15 +33,15 @@ sh executar.sh web --porta 8001 --sem-abrir
 
 ## 🎓 Como acompanhar a apresentação
 
-1. **Começo:** leia o problema, o objetivo, os dados recebidos e os termos essenciais.
-2. **Etapas:** acompanhe entrada → operação → saída no fluxograma e compare os dados da execução.
-3. **Código:** a faixa “Acompanhe no código” mostra o arquivo e o método. Use “Ver trecho” para consultar as linhas reais; copie o caminho para abrir no editor.
-4. **Resultado:** relacione o resultado à estrutura escolhida e confira a pergunta final.
-5. **Próximo exemplo:** avance pelo botão da própria página; a sequência também está no menu lateral.
+1. **Começo:** leia o contexto, o objetivo, os dados recebidos e os conceitos novos.
+2. **Previsão:** em cada etapa, observe a entrada e a operação, leia a pergunta e acompanhe a linha destacada no código antes de discutir a saída esperada.
+3. **Conferência:** revele a explicação e compare a previsão com o resultado visual da execução. A marca ✓ indica as etapas já reveladas.
+4. **Fechamento:** relacione o resultado ao problema, às estruturas escolhidas e à pergunta final.
+5. **Próximo exemplo:** avance pela navegação ou pelo menu lateral.
 
 As teclas ← e → navegam entre etapas. A página oferece aumento de texto, tela cheia, conceitos, perguntas e acesso à classe completa.
 
-O cálculo acontece ao iniciar o exemplo. A navegação revela os resultados no ritmo da aula. Ao alterar parâmetros do HDBSCAN, execute novamente para obter a nova saída.
+O cálculo acontece ao iniciar o exemplo; a página revela cada etapa no ritmo da aula. Ao alterar parâmetros do HDBSCAN, execute novamente para obter a nova saída.
 
 ## 🗺️ Percurso e código principal
 

@@ -61,8 +61,17 @@ def ler_fonte(referencia):
                     break
     while fim > inicio and not linhas[fim - 1].strip():
         fim -= 1
+    foco = referencia.get("destaque")
+    linha_foco = None
+    if foco:
+        correspondencias = [indice + 1 for indice, linha in enumerate(linhas[inicio:fim], start=inicio)
+                            if foco in linha]
+        if len(correspondencias) != 1:
+            raise ValueError(f"O destaque {foco!r} deve corresponder a uma linha em {arquivo}.")
+        linha_foco = correspondencias[0]
     return {"arquivo": arquivo, "simbolo": simbolo or "Visão da classe",
-            "inicio": inicio + 1, "fim": fim, "trecho": linhas[inicio:fim], "codigo": codigo}
+            "inicio": inicio + 1, "fim": fim, "trecho": linhas[inicio:fim], "codigo": codigo,
+            "linhaFoco": linha_foco}
 
 
 def codigo_da_etapa(exemplo, etapa):
@@ -129,7 +138,7 @@ def executar_exemplo(numero, parametros):
         raise RuntimeError(resultado.stderr.strip() or resultado.stdout.strip()
                            or "O exemplo não terminou corretamente.")
     resposta = {"etapas": separar_etapas(resultado.stdout), "saida": resultado.stdout}
-    if numero in (1, 9, 11, 12):
+    if numero in (1, 2, 3, 4, 6, 9, 11, 12):
         visual = subprocess.run(
             comando[:-1] + ["--dados", str(numero)], cwd=RAIZ, env=ambiente,
             capture_output=True, text=True, encoding="utf-8", timeout=120, check=False,

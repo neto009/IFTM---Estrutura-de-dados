@@ -62,7 +62,8 @@
         "codigo": [
           {
             "arquivo": "src/oficina/demonstracoes/DadosOficina.java",
-            "simbolo": "chamados"
+            "simbolo": "chamados",
+            "destaque": "return List.of("
           },
           {
             "arquivo": "src/oficina/dominio/Chamado.java"
@@ -85,7 +86,8 @@
         "codigo": [
           {
             "arquivo": "src/oficina/casos/ConsultasChamados.java",
-            "simbolo": "filtrarAbertos"
+            "simbolo": "filtrarAbertos",
+            "destaque": ".filter(Chamado::aguardandoAtendimento)"
           },
           {
             "arquivo": "src/oficina/dominio/Chamado.java",
@@ -114,7 +116,8 @@
         "codigo": [
           {
             "arquivo": "src/oficina/casos/ConsultasChamados.java",
-            "simbolo": "priorizarAbertos"
+            "simbolo": "priorizarAbertos",
+            "destaque": ".sorted(ORDEM_ATENDIMENTO)"
           },
           {
             "arquivo": "src/oficina/casos/ConsultasChamados.java",
@@ -142,7 +145,8 @@
           },
           {
             "arquivo": "src/oficina/demonstracoes/ExemplosColecoes.java",
-            "simbolo": "carregarBacklog"
+            "simbolo": "carregarBacklog",
+            "destaque": "fila.offer(novo)"
           }
         ],
         "pergunta": "Por que o novo 107 passa à frente de 106?",
@@ -219,7 +223,8 @@
         "codigo": [
           {
             "arquivo": "src/oficina/demonstracoes/ExemplosListas.java",
-            "simbolo": "carregarArquivo"
+            "simbolo": "carregarArquivo",
+            "destaque": "Files.readAllLines("
           }
         ],
         "pergunta": "A leitura remove duplicatas ou espaços automaticamente?",
@@ -239,7 +244,8 @@
         "codigo": [
           {
             "arquivo": "src/oficina/casos/ImportacaoEmails.java",
-            "simbolo": "preparar"
+            "simbolo": "preparar",
+            "destaque": ".distinct()"
           }
         ],
         "pergunta": "O que acontece se distinct vier antes de toLowerCase?",
@@ -259,7 +265,8 @@
         "codigo": [
           {
             "arquivo": "src/oficina/demonstracoes/ExemplosListas.java",
-            "simbolo": "arquivo"
+            "simbolo": "arquivo",
+            "destaque": "startsWith(\"ana@\")"
           }
         ],
         "decisao": {
@@ -342,7 +349,8 @@
         "codigo": [
           {
             "arquivo": "src/oficina/demonstracoes/ExemplosListas.java",
-            "simbolo": "consultarBanco"
+            "simbolo": "consultarBanco",
+            "destaque": "List<Usuario> registros = List.of("
           },
           {
             "arquivo": "src/oficina/casos/ConsultaUsuarios.java",
@@ -366,7 +374,8 @@
         "codigo": [
           {
             "arquivo": "src/oficina/casos/ConsultaUsuarios.java",
-            "simbolo": "listarAtivos"
+            "simbolo": "listarAtivos",
+            "destaque": ".skip((long) pagina * tamanho)"
           }
         ],
         "pergunta": "O que daria errado se limit viesse antes de filter?",
@@ -386,7 +395,8 @@
         "codigo": [
           {
             "arquivo": "src/oficina/demonstracoes/ExemplosListas.java",
-            "simbolo": "consultarBanco"
+            "simbolo": "consultarBanco",
+            "destaque": ".map(usuario -> new Contato("
           }
         ],
         "pergunta": "Onde filtro e paginação devem ocorrer em um banco real?",
@@ -462,11 +472,13 @@
         "codigo": [
           {
             "arquivo": "src/oficina/dominio/Pedido.java",
-            "simbolo": "confirmarPagamento"
+            "simbolo": "confirmarPagamento",
+            "destaque": "return new Pedido(id, cliente, total, Status.PAGO)"
           },
           {
             "arquivo": "src/oficina/casos/FilaSeparacao.java",
-            "simbolo": "agendar"
+            "simbolo": "agendar",
+            "destaque": "pendentes.offer(pedido)"
           }
         ],
         "decisao": {
@@ -491,11 +503,13 @@
         "codigo": [
           {
             "arquivo": "src/oficina/casos/FilaSeparacao.java",
-            "simbolo": "consultarProximo"
+            "simbolo": "consultarProximo",
+            "destaque": "pendentes.peek()"
           },
           {
             "arquivo": "src/oficina/casos/FilaSeparacao.java",
-            "simbolo": "agendar"
+            "simbolo": "agendar",
+            "destaque": "idsAgendados.add(pedido.id())"
           }
         ],
         "pergunta": "Por que a Queue sozinha não evita a repetição?",
@@ -515,11 +529,13 @@
         "codigo": [
           {
             "arquivo": "src/oficina/casos/FilaSeparacao.java",
-            "simbolo": "iniciarProximo"
+            "simbolo": "iniciarProximo",
+            "destaque": "pendentes.poll()"
           },
           {
             "arquivo": "src/oficina/dominio/Pedido.java",
-            "simbolo": "iniciarSeparacao"
+            "simbolo": "iniciarSeparacao",
+            "destaque": "Status.EM_SEPARACAO"
           }
         ],
         "pergunta": "Por que retornar Optional em vez de lançar erro quando a fila acaba?",
@@ -592,7 +608,8 @@
         ],
         "codigo": [
           {
-            "arquivo": "src/oficina/dominio/ConfiguracaoAplicacao.java"
+            "arquivo": "src/oficina/dominio/ConfiguracaoAplicacao.java",
+            "destaque": "public record ConfiguracaoAplicacao"
           },
           {
             "arquivo": "src/oficina/casos/EditorConfiguracao.java",
@@ -616,7 +633,8 @@
         "codigo": [
           {
             "arquivo": "src/oficina/casos/EditorConfiguracao.java",
-            "simbolo": "atualizar"
+            "simbolo": "atualizar",
+            "destaque": "historico.push(atual)"
           }
         ],
         "pergunta": "O histórico guarda o estado antes ou depois da mudança?",
@@ -636,7 +654,8 @@
         "codigo": [
           {
             "arquivo": "src/oficina/casos/EditorConfiguracao.java",
-            "simbolo": "desfazer"
+            "simbolo": "desfazer",
+            "destaque": "historico.pop()"
           }
         ],
         "decisao": {
@@ -716,7 +735,8 @@
         "codigo": [
           {
             "arquivo": "src/oficina/casos/RepositorioUsuarios.java",
-            "simbolo": "cadastrar"
+            "simbolo": "cadastrar",
+            "destaque": "usuariosPorId.putIfAbsent"
           }
         ],
         "pergunta": "Um HashMap devolve os usuários na ordem de cadastro?",
@@ -736,7 +756,8 @@
         "codigo": [
           {
             "arquivo": "src/oficina/casos/RepositorioUsuarios.java",
-            "simbolo": "buscarPorId"
+            "simbolo": "buscarPorId",
+            "destaque": "usuariosPorId.get(id)"
           },
           {
             "arquivo": "src/oficina/demonstracoes/ExemplosColecoes.java",
@@ -765,11 +786,13 @@
         "codigo": [
           {
             "arquivo": "src/oficina/casos/RepositorioUsuarios.java",
-            "simbolo": "atualizar"
+            "simbolo": "atualizar",
+            "destaque": "usuariosPorId.replace"
           },
           {
             "arquivo": "src/oficina/casos/RepositorioUsuarios.java",
-            "simbolo": "listarAtivos"
+            "simbolo": "listarAtivos",
+            "destaque": ".sorted(Comparator.comparing(Usuario::nome)"
           }
         ],
         "pergunta": "Por que ordenar se usamos um Map?",
@@ -846,7 +869,8 @@
         "codigo": [
           {
             "arquivo": "src/oficina/casos/LinhaDoTempoLogs.java",
-            "simbolo": "registrar"
+            "simbolo": "registrar",
+            "destaque": "registros.computeIfAbsent"
           },
           {
             "arquivo": "src/oficina/dominio/RegistroLog.java"
@@ -869,7 +893,8 @@
         "codigo": [
           {
             "arquivo": "src/oficina/casos/LinhaDoTempoLogs.java",
-            "simbolo": "consultar"
+            "simbolo": "consultar",
+            "destaque": "registros.subMap("
           }
         ],
         "pergunta": "Por que usar o fim exclusivo em janelas consecutivas?",
@@ -893,7 +918,8 @@
           },
           {
             "arquivo": "src/oficina/demonstracoes/ExemplosColecoes.java",
-            "simbolo": "arvore"
+            "simbolo": "arvore",
+            "destaque": "Collectors.groupingBy("
           }
         ],
         "pergunta": "O TreeMap expõe os nós de sua árvore interna?",
@@ -978,7 +1004,8 @@
           },
           {
             "arquivo": "src/oficina/casos/PaginaNavegavel.java",
-            "simbolo": "carregar"
+            "simbolo": "carregar",
+            "destaque": "new Gson().fromJson(leitor, PaginaApi.class)"
           }
         ],
         "pergunta": "De onde vem a estrutura: dos dados da API ou da tela que está sendo exibida?",
@@ -998,7 +1025,8 @@
         "codigo": [
           {
             "arquivo": "src/oficina/casos/PaginaNavegavel.java",
-            "simbolo": "vincularPais"
+            "simbolo": "vincularPais",
+            "destaque": "vincularPais(pagina.children(), pagina.id())"
           }
         ],
         "decisao": {
@@ -1023,7 +1051,8 @@
         "codigo": [
           {
             "arquivo": "src/oficina/casos/PaginaNavegavel.java",
-            "simbolo": "listarPaginas"
+            "simbolo": "listarPaginas",
+            "destaque": "resultado.addAll(listarPaginas(pagina.filhos()))"
           }
         ],
         "pergunta": "A lista linear precisa copiar ou remover as subárvores?",
@@ -1043,7 +1072,8 @@
         "codigo": [
           {
             "arquivo": "src/oficina/casos/PaginaNavegavel.java",
-            "simbolo": "paiDe"
+            "simbolo": "paiDe",
+            "destaque": "flatMap(this::buscarPorId)"
           },
           {
             "arquivo": "src/oficina/casos/PaginaNavegavel.java",
@@ -1127,7 +1157,8 @@
         "codigo": [
           {
             "arquivo": "src/oficina/casos/DependenciasServicos.java",
-            "simbolo": "adicionarDependencia"
+            "simbolo": "adicionarDependencia",
+            "destaque": "grafo.addEdge(fornecedor, consumidor)"
           }
         ],
         "pergunta": "Notificações deve aparecer duas vezes no resultado?",
@@ -1147,11 +1178,13 @@
         "codigo": [
           {
             "arquivo": "src/oficina/casos/DependenciasServicos.java",
-            "simbolo": "impactadosEmLargura"
+            "simbolo": "impactadosEmLargura",
+            "destaque": "new BreadthFirstIterator<>(grafo, origem)"
           },
           {
             "arquivo": "src/oficina/casos/DependenciasServicos.java",
-            "simbolo": "impactadosEmProfundidade"
+            "simbolo": "impactadosEmProfundidade",
+            "destaque": "new DepthFirstIterator<>(grafo, origem)"
           }
         ],
         "pergunta": "A diferença de ordem significa que uma busca perdeu serviços?",
@@ -1171,7 +1204,8 @@
         "codigo": [
           {
             "arquivo": "src/oficina/casos/DependenciasServicos.java",
-            "simbolo": "impactadosEmLargura"
+            "simbolo": "impactadosEmLargura",
+            "destaque": "new BreadthFirstIterator<>(grafo, origem)"
           }
         ],
         "pergunta": "O que mudaria se invertêssemos as relações?",
@@ -1248,7 +1282,8 @@
         "codigo": [
           {
             "arquivo": "python/cosseno.py",
-            "simbolo": "demonstrar"
+            "simbolo": "demonstrar",
+            "destaque": "consulta = np.array([[8, 6, 0]]"
           }
         ],
         "pergunta": "Podemos trocar a ordem das áreas em apenas um vetor?",
@@ -1268,7 +1303,8 @@
         "codigo": [
           {
             "arquivo": "python/cosseno.py",
-            "simbolo": "demonstrar"
+            "simbolo": "demonstrar",
+            "destaque": "cosine_similarity(consulta, perfis)[0]"
           }
         ],
         "pergunta": "O escore mede volume absoluto ou probabilidade?",
@@ -1288,7 +1324,8 @@
         "codigo": [
           {
             "arquivo": "python/cosseno.py",
-            "simbolo": "demonstrar"
+            "simbolo": "demonstrar",
+            "destaque": "tela.linha(\"1: mesma proporção"
           }
         ],
         "pergunta": "Um escore zero sempre significa que os dois casos não têm nenhuma relação de negócio?",
@@ -1365,7 +1402,8 @@
         "codigo": [
           {
             "arquivo": "src/oficina/demonstracoes/ProcessamentoEventos.java",
-            "simbolo": "executar"
+            "simbolo": "executar",
+            "destaque": "new ArrayBlockingQueue<>(3)"
           }
         ],
         "decisao": {
@@ -1390,7 +1428,8 @@
         "codigo": [
           {
             "arquivo": "src/oficina/casos/ConsumidorPagamentos.java",
-            "simbolo": "processar"
+            "simbolo": "processar",
+            "destaque": "pedido.confirmarPagamento(evento.valor())"
           }
         ],
         "decisao": {
@@ -1415,7 +1454,8 @@
         "codigo": [
           {
             "arquivo": "src/oficina/demonstracoes/ProcessamentoEventos.java",
-            "simbolo": "executar"
+            "simbolo": "executar",
+            "destaque": "Contadores contadores = new Contadores"
           },
           {
             "arquivo": "src/oficina/casos/ConsumidorPagamentos.java",
@@ -1504,7 +1544,8 @@
         "codigo": [
           {
             "arquivo": "python/hdbscan_exemplo.py",
-            "simbolo": "preparar_incidentes"
+            "simbolo": "preparar_incidentes",
+            "destaque": "escalador.fit_transform(caracteristicas)"
           },
           {
             "arquivo": "python/hdbscan_exemplo.py",
@@ -1528,7 +1569,8 @@
         "codigo": [
           {
             "arquivo": "python/hdbscan_exemplo.py",
-            "simbolo": "calcular_distancias"
+            "simbolo": "calcular_distancias",
+            "destaque": "pairwise_distances(pontos, metric=\"euclidean\")"
           }
         ],
         "pergunta": "O que a diagonal e a simetria permitem conferir?",
@@ -1548,7 +1590,8 @@
         "codigo": [
           {
             "arquivo": "python/hdbscan_exemplo.py",
-            "simbolo": "consultar_vizinhos"
+            "simbolo": "consultar_vizinhos",
+            "destaque": "arvore.query(pontos, k=min_samples + 1)"
           }
         ],
         "pergunta": "A consulta à KDTree substitui o cálculo da rotina seguinte?",
@@ -1568,7 +1611,8 @@
         "codigo": [
           {
             "arquivo": "python/hdbscan_exemplo.py",
-            "simbolo": "construir_grafo"
+            "simbolo": "construir_grafo",
+            "destaque": "mutual_reachability(distancias.copy(), min_points=min_samples, alpha=1.0)"
           }
         ],
         "aprofundamento": [
@@ -1591,7 +1635,8 @@
         "codigo": [
           {
             "arquivo": "python/hdbscan_exemplo.py",
-            "simbolo": "construir_mst"
+            "simbolo": "construir_mst",
+            "destaque": "minimum_spanning_tree(grafo)"
           }
         ],
         "aprofundamento": [
@@ -1614,11 +1659,13 @@
         "codigo": [
           {
             "arquivo": "python/hdbscan_exemplo.py",
-            "simbolo": "construir_hierarquia"
+            "simbolo": "construir_hierarquia",
+            "destaque": "return label(ordenadas)"
           },
           {
             "arquivo": "python/hdbscan_exemplo.py",
-            "simbolo": "inspecionar_componentes"
+            "simbolo": "inspecionar_componentes",
+            "destaque": "componentes.merge(int(origem), int(destino))"
           }
         ],
         "pergunta": "Union-find está escolhendo os clusters finais?",
@@ -1638,11 +1685,13 @@
         "codigo": [
           {
             "arquivo": "python/hdbscan_exemplo.py",
-            "simbolo": "condensar_hierarquia"
+            "simbolo": "condensar_hierarquia",
+            "destaque": "return condense_tree(hierarquia, min_cluster_size)"
           },
           {
             "arquivo": "python/hdbscan_exemplo.py",
-            "simbolo": "selecionar_clusters"
+            "simbolo": "selecionar_clusters",
+            "destaque": "get_clusters("
           }
         ],
         "aprofundamento": [
@@ -1666,7 +1715,8 @@
         "codigo": [
           {
             "arquivo": "python/hdbscan_exemplo.py",
-            "simbolo": "executar_etapas"
+            "simbolo": "executar_etapas",
+            "destaque": "return dict(incidentes=INCIDENTES,"
           }
         ],
         "pergunta": "O algoritmo aprendeu categorias IAM e Pagamentos?",
@@ -1686,11 +1736,13 @@
         "codigo": [
           {
             "arquivo": "python/hdbscan_exemplo.py",
-            "simbolo": "executar_hdbscan_completo"
+            "simbolo": "executar_hdbscan_completo",
+            "destaque": ").fit(pontos)"
           },
           {
             "arquivo": "python/hdbscan_exemplo.py",
-            "simbolo": "rotulos_canonicos"
+            "simbolo": "rotulos_canonicos",
+            "destaque": "ids.setdefault(valor, len(ids))"
           }
         ],
         "pergunta": "O resultado igual neste conjunto prova equivalência em qualquer base?",

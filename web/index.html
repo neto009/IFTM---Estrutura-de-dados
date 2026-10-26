@@ -59,13 +59,13 @@
         <div class="lesson-grid">
           <article class="stage-card" aria-labelledby="etapa-titulo">
             <div class="stage-kicker"><span class="eyebrow" id="etapa-numero"></span><button id="reiniciar" class="text-button">Rever do início ↺</button></div>
-            <h2 id="etapa-titulo"></h2>
+            <h2 id="etapa-titulo" tabindex="-1"></h2>
             <div id="explicacao"></div>
-            <h3 id="resultado-titulo" class="result-heading">O que aconteceu nesta execução</h3>
+            <h3 id="resultado-titulo" class="result-heading">Resultado observado na execução</h3>
             <div id="log" class="log" aria-live="polite"></div>
           </article>
           <aside id="roteiro" class="presenter-card" aria-label="Pergunta e conexão do exemplo">
-            <div class="eyebrow">PERGUNTA DESTA ETAPA</div>
+            <div class="eyebrow" id="pergunta-contexto">PERGUNTA DO EXEMPLO</div>
             <section class="question">
               <h3>Para refletir</h3>
               <p id="pergunta"></p>

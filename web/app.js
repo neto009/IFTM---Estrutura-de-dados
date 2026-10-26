@@ -9,6 +9,7 @@ const elemento = (tag, classe, texto) => {
 };
 let catalogo = [], exemplo, etapas = [], etapasCalculadas = [], posicao = 0;
 let requisicao, dadosVisuais, versao = 0, fontesAtuais = [], indiceFonte = 0;
+const etapasReveladas = new Set();
 const cacheCodigo = new Map();
 
 async function obterJson(url, sinal) {
@@ -21,7 +22,7 @@ async function obterJson(url, sinal) {
 function limparEtapas() {
   requisicao?.abort();
   versao++;
-  etapas = []; etapasCalculadas = []; dadosVisuais = null; posicao = 0;
+  etapas = []; etapasCalculadas = []; dadosVisuais = null; posicao = 0; etapasReveladas.clear();
   porId("apresentacao").hidden = true;
   porId("vazio").hidden = false;
   porId("erro").hidden = true;
@@ -137,13 +138,20 @@ function renderizarLinhas(texto, visual) {
 function renderizarEtapa() {
   const etapa = etapas[posicao], fim = etapa.numero === -1, inicio = etapa.numero === 0;
   const conteudo = inicio || fim ? null : exemplo.etapas[etapa.numero-1];
-  porId("etapa-numero").textContent = inicio ? "COMEÇO · ENTENDER O PROBLEMA" : fim ? "FIM · CONECTAR O RESULTADO" : "ETAPA " + etapa.numero + " · CONSTRUIR A SOLUÇÃO";
+  const revelada = Boolean(conteudo && etapasReveladas.has(etapa.numero));
+  porId("etapa-numero").textContent = inicio ? "COMEÇO · ENTENDER O PROBLEMA" : fim ? "FIM · CONECTAR O RESULTADO" :
+    "ETAPA " + etapa.numero + (revelada ? " · EXPLICAR E CONFERIR" : " · PREVER ANTES DE REVELAR");
   porId("etapa-titulo").textContent = inicio ? "O que vamos resolver e por onde começar" : fim ? etapa.titulo : conteudo.titulo;
   porId("explicacao").replaceChildren(inicio ? Aula.inicio(exemplo, irParaEtapa, termosDeExemplosAnteriores(exemplo)) :
-    fim ? Aula.fim(exemplo, etapasCalculadas) : Aula.etapa(conteudo));
-  porId("resultado-titulo").hidden = inicio || fim;
-  porId("log").hidden = inicio || fim;
-  if (conteudo) renderizarLinhas(etapa.linhas, Visuais.lista(exemplo.id, etapa.numero, dadosVisuais));
+    fim ? Aula.fim(exemplo, etapasCalculadas) : revelada ? Aula.etapa(conteudo) : Aula.previsao(conteudo, () => {
+      etapasReveladas.add(etapa.numero);
+      renderizarEtapa();
+      porId("etapa-titulo").focus({preventScroll:true});
+      porId("etapa-titulo").scrollIntoView({behavior:"smooth",block:"start"});
+    }));
+  porId("resultado-titulo").hidden = !revelada;
+  porId("log").hidden = !revelada;
+  if (revelada) renderizarLinhas(etapa.linhas, Visuais.lista(exemplo.id, etapa.numero, dadosVisuais));
   const indiceExemplo = catalogo.indexOf(exemplo);
   const etapaSeguinte = inicio ? exemplo.etapas[0] : conteudo ? exemplo.etapas[etapa.numero] : null;
   const exemploSeguinte = fim ? catalogo[indiceExemplo + 1] : null;
@@ -153,6 +161,7 @@ function renderizarEtapa() {
       proximo:exemploSeguinte?.titulo,proximoRotulo:"Próximo exemplo"} :
       {pergunta:conteudo.pergunta,resposta:conteudo.resposta,proximo:etapaSeguinte?.titulo,
         proximoRotulo:"Próxima etapa"};
+  porId("pergunta-contexto").textContent = inicio ? "QUESTÃO DE ABERTURA" : fim ? "REVISÃO DO EXEMPLO" : "PERGUNTA DA ETAPA";
   porId("pergunta").textContent = nota.pergunta;
   porId("resposta").textContent = nota.resposta;
   porId("resposta-container").hidden = !nota.resposta;
@@ -169,13 +178,15 @@ function renderizarEtapa() {
   porId("proximo").textContent = fim ? (indice===catalogo.length-1 ? "Oficina concluída ✓" : "Próximo exemplo →") : "Avançar →";
   porId("progresso").textContent = inicio ? "Começo" : fim ? "Resultado final" : etapa.numero + " de " + exemplo.etapas.length + " etapas";
   porId("etapas").replaceChildren(...etapas.map((item,i)=>{
-    const botao = elemento("button","step",item.numero===0?"Começo":item.numero===-1?"Resultado":String(item.numero).padStart(2,"0"));
+    const revelada = item.numero>0 && etapasReveladas.has(item.numero);
+    const rotulo = item.numero===0 ? "Começo" : item.numero===-1 ? "Resultado" : String(item.numero).padStart(2,"0")+(revelada?" ✓":"");
+    const botao = elemento("button","step"+(revelada?" is-revealed":""),rotulo);
     botao.title = item.numero>0 ? exemplo.etapas[item.numero-1].titulo : item.titulo;
     if (i===posicao) botao.setAttribute("aria-current","step");
     botao.onclick=()=>irParaEtapa(i);
     return botao;
   }));
-  porId("arvore").hidden = exemplo.id!==12 || !dadosVisuais || inicio || fim;
+  porId("arvore").hidden = exemplo.id!==12 || !dadosVisuais || inicio || fim || !revelada;
   acompanharCodigo(etapa.numero);
 }
 
@@ -224,17 +235,22 @@ function renderizarCodigo() {
   const fonte=fontesAtuais[indiceFonte];
   if(!fonte)return;
   const completo=porId("classe-completa").checked;
+  porId("classe-ativa").textContent=fonte.arquivo.split("/").pop()+(fonte.simbolo?" · "+fonte.simbolo:"")+
+    (fonte.linhaFoco?" · linha "+fonte.linhaFoco:"");
   porId("codigo-titulo").textContent=fonte.arquivo.split("/").pop()+" · "+fonte.simbolo;
   porId("fonte-path").textContent=fonte.arquivo;
-  porId("codigo-descricao").textContent="Linhas "+fonte.inicio+" a "+fonte.fim+" do arquivo real. Abra este caminho no editor para acompanhar a etapa.";
+  porId("codigo-descricao").textContent=fonte.linhaFoco
+    ? "Linha "+fonte.linhaFoco+" destacada: operação principal desta etapa. Trecho real entre as linhas "+fonte.inicio+" e "+fonte.fim+"."
+    : "Linhas "+fonte.inicio+" a "+fonte.fim+" do arquivo real. Abra este caminho no editor para acompanhar a etapa.";
   const linhas=completo?fonte.codigo.split("\n"):fonte.trecho, primeira=completo?1:fonte.inicio;
   porId("fonte-trecho").replaceChildren(...linhas.map((texto,i)=>{
     const numero=primeira+i;
-    const linha=elemento("span","code-line"+(completo&&numero>=fonte.inicio&&numero<=fonte.fim?" is-scope":""));
+    const linha=elemento("span","code-line"+(completo&&numero>=fonte.inicio&&numero<=fonte.fim?" is-scope":"")+
+      (numero===fonte.linhaFoco?" is-focus":""));
     linha.append(elemento("span","line-number",String(numero)),elemento("code","",texto||" "));
     return linha;
   }));
-  const painel=porId("fonte-trecho"), foco=painel.querySelector(".is-scope");
+  const painel=porId("fonte-trecho"), foco=painel.querySelector(".is-focus")||painel.querySelector(".is-scope");
   painel.scrollTop=0;
   if(foco) painel.scrollTop=foco.getBoundingClientRect().top-painel.getBoundingClientRect().top-28;
   porId("fontes-seletor").querySelectorAll("button").forEach((b,i)=>b.setAttribute("aria-pressed",String(i===indiceFonte)));

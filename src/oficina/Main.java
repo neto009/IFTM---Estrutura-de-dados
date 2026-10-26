@@ -154,13 +154,17 @@ public final class Main {
         }
         Object dados = switch (Integer.parseInt(argumentos[1])) {
             case 1 -> ExemplosColecoes.carregarBacklog();
+            case 2 -> ExemplosColecoes.carregarFila();
+            case 3 -> ExemplosColecoes.carregarPilha();
+            case 4 -> ExemplosColecoes.carregarMapa();
+            case 6 -> ExemplosColecoes.carregarGrafo();
             case 9 -> ExemplosListas.carregarArquivo();
             case 11 -> ExemplosListas.consultarBanco();
             case 12 -> {
                 var pagina = ExemploPagina.carregar();
                 yield Map.of("raiz", pagina.raiz(), "elementos", pagina.elementos());
             }
-            default -> throw new IllegalArgumentException("Dados visuais disponíveis para 1, 9, 11 e 12.");
+            default -> throw new IllegalArgumentException("Dados visuais indisponíveis para este exemplo.");
         };
         System.out.println(new GsonBuilder().serializeNulls().create().toJson(dados));
     }

@@ -200,6 +200,281 @@ const Visuais = (() => {
     return painel;
   }
 
+  function cartaoPedido(pedido, rotulo, destaque = false) {
+    const cartao = criar("article", "queue-token" + (destaque ? " is-next" : ""));
+    cartao.append(criar("span", "eyebrow", rotulo), criar("strong", "", pedido.id),
+      criar("span", "", pedido.cliente), criar("small", "", statusPedido(pedido.status)));
+    return cartao;
+  }
+
+  function statusPedido(status) {
+    return ({PAGO:"Pago",EM_SEPARACAO:"Em separação"})[status] || status;
+  }
+
+  function trilhoFila(pedidos, proximoId) {
+    const trilho = criar("div", "queue-track");
+    const frente = criar("div", "queue-endpoint");
+    frente.append(criar("span", "eyebrow", "FRENTE"), criar("strong", "", "próximo a sair"));
+    trilho.append(frente);
+    pedidos.forEach((pedido, indice) => {
+      trilho.append(cartaoPedido(pedido, indice === 0 ? "HEAD · 0" : "POSIÇÃO " + indice,
+        pedido.id === proximoId));
+      if (indice < pedidos.length - 1) trilho.append(criar("span", "queue-arrow", "→"));
+    });
+    const fim = criar("div", "queue-endpoint");
+    fim.append(criar("span", "eyebrow", "FUNDO"), criar("strong", "", "próximo a entrar"));
+    trilho.append(fim);
+    return trilho;
+  }
+
+  function fila(etapa, dados) {
+    const painel = criar("section", "collection-visual");
+    if (etapa < 3) {
+      painel.append(titulo(etapa === 1 ? "FILA · ORDEM DE APROVAÇÃO" : "PEEK · CONSULTA SEM REMOÇÃO",
+        etapa === 1 ? "Pedidos pagos aguardam no fim da fila." : "O primeiro pedido continua na frente."));
+      painel.append(trilhoFila(dados.pedidosNaFila, etapa === 2 ? dados.proximo.id : null));
+      painel.append(metricas([[dados.pedidosNaFila.length, "pedidos na fila"],
+        [etapa === 1 ? "FIFO" : dados.proximo.id, etapa === 1 ? "primeiro a entrar, primeiro a sair" : "próximo sem consumir"]]));
+      painel.append(criar("p", "visual-caption", etapa === 1
+        ? "offer coloca cada novo pedido no fundo; a fila conserva a ordem de aprovação."
+        : dados.reentregaIgnorada
+          ? "peek não remove PED-101. A reentrega do mesmo ID foi ignorada pelo conjunto de IDs agendados."
+          : "A reentrega foi aceita; confira o controle de IDs antes de avançar."));
+    } else {
+      painel.append(titulo("POLL · ORDEM REAL DE RETIRADA", "Cada pedido sai pela frente e muda de estado."));
+      const lista = criar("ol", "queue-processed");
+      dados.retirados.forEach((pedido, indice) => {
+        const item = criar("li", "queue-token" + (indice === 0 ? " is-next" : ""));
+        item.append(criar("span", "eyebrow", "RETIRADA " + (indice + 1)),
+          criar("strong", "", pedido.id), criar("span", "", pedido.cliente),
+          criar("small", "", statusPedido(pedido.status)));
+        lista.append(item);
+      });
+      painel.append(lista, metricas([[dados.retirados.length, "pedidos processados"],
+        [dados.pendentesAposProcessamento, "pedidos restantes"]]));
+      painel.append(criar("p", "visual-caption", "A sequência é o resultado das chamadas a poll; a fila termina vazia."));
+    }
+    return painel;
+  }
+
+  function estadoConfiguracao(estado) {
+    const cartao = criar("article", "state-token");
+    cartao.append(criar("strong", "", (estado.timeoutMillis / 1000) + " s"),
+      criar("span", "", "Diagnóstico " + (estado.logsDetalhados ? "ligado" : "desligado")));
+    return cartao;
+  }
+
+  function pilha(etapa, dados) {
+    const painel = criar("section", "collection-visual");
+    if (etapa < 3) {
+      painel.append(titulo(etapa === 1 ? "ESTADO ATUAL" : "HISTÓRICO · TOPO PRIMEIRO",
+        etapa === 1 ? "A configuração também é um objeto imutável." : "O snapshot mais recente fica no topo do Deque."));
+      const quadro = criar("div", "stack-layout");
+      const atual = criar("section", "stack-current");
+      atual.append(criar("span", "eyebrow", "CONFIGURAÇÃO EM USO"),
+        estadoConfiguracao(etapa === 1 ? dados.inicial : dados.comDiagnostico));
+      const historico = criar("section", "stack-history");
+      historico.append(criar("span", "eyebrow", "PILHA · LIFO"));
+      if (etapa === 1) {
+        historico.append(criar("div", "stack-empty", "Sem snapshots anteriores"));
+      } else {
+        const lista = criar("ol", "stack-items");
+        dados.desfeitos.forEach((estado, indice) => {
+          const item = criar("li", indice === 0 ? "stack-top" : "");
+          if (indice === 0) item.append(criar("span", "stack-top-label", "TOPO · PRÓXIMO A SAIR"));
+          item.append(estadoConfiguracao(estado));
+          lista.append(item);
+        });
+        historico.append(lista);
+      }
+      quadro.append(atual, historico);
+      painel.append(quadro);
+    } else {
+      painel.append(titulo("POP · DESFAZER EM LIFO", "O estado mais recente é restaurado primeiro."));
+      const fluxo = criar("ol", "undo-sequence");
+      dados.desfeitos.forEach((estado, indice) => {
+        const item = criar("li", "undo-step");
+        item.append(criar("span", "eyebrow", "POP " + (indice + 1)), estadoConfiguracao(estado));
+        fluxo.append(item);
+      });
+      painel.append(fluxo);
+      const atual = criar("div", "restored-state");
+      atual.append(criar("span", "eyebrow", "ESTADO FINAL · HISTÓRICO VAZIO"),
+        estadoConfiguracao(dados.estadoFinal));
+      painel.append(atual);
+    }
+    return painel;
+  }
+
+  function usuarioAssociacao(usuario, destaque = false) {
+    const linha = criar("div", "map-entry" + (destaque ? " is-match" : ""));
+    const chave = criar("div", "map-key");
+    chave.append(criar("span", "eyebrow", "CHAVE"), criar("strong", "", String(usuario.id)));
+    const valor = criar("div", "map-value");
+    valor.append(criar("span", "eyebrow", "VALOR · USUARIO"), criar("strong", "", usuario.nome),
+      criar("span", "", usuario.email), criar("small", "", usuario.ativo ? "Ativo" : "Inativo"));
+    linha.append(chave, criar("span", "map-arrow", "→"), valor);
+    return linha;
+  }
+
+  function consultaUsuario(id, usuario) {
+    const linha = criar("div", "lookup-result" + (usuario ? " found" : " absent"));
+    linha.append(criar("code", "lookup-key", "get(" + id + ")"), criar("span", "map-arrow", "→"),
+      usuario ? criar("strong", "", usuario.nome + " · " + (usuario.ativo ? "ativo" : "inativo"))
+        : criar("strong", "", "Optional.empty"));
+    return linha;
+  }
+
+  function mapa(etapa, dados) {
+    const painel = criar("section", "collection-visual");
+    if (etapa === 1) {
+      painel.append(titulo("HASHMAP · ID → USUARIO", "A chave aponta para o objeto que a aplicação consulta."));
+      const entradas = criar("div", "map-entries");
+      dados.cadastrados.forEach(usuario => entradas.append(usuarioAssociacao(usuario)));
+      painel.append(entradas, criar("p", "visual-caption", "A ordem das linhas é apenas para leitura: HashMap não garante a ordem de apresentação."));
+    } else if (etapa === 2) {
+      painel.append(titulo("BUSCA POR CHAVE", "A ausência também é um resultado que a aplicação trata."));
+      const consultas = criar("div", "lookup-results");
+      consultas.append(consultaUsuario(dados.contaAtiva.id, dados.contaAtiva),
+        consultaUsuario(dados.contaInativa.id, dados.contaInativa),
+        consultaUsuario(dados.idInexistente, dados.contaInexistente));
+      painel.append(consultas, criar("p", "visual-caption", "O índice encontra o valor pelo ID. A regra de negócio decide se uma conta inativa pode receber avisos."));
+    } else {
+      painel.append(titulo("ATUALIZAÇÃO E RESPOSTA", "O mesmo ID passa a apontar para o objeto atualizado."));
+      const mudanca = criar("div", "map-update");
+      mudanca.append(usuarioAssociacao(dados.contaAtiva), criar("span", "map-update-arrow", "↓ replace"),
+        usuarioAssociacao(dados.anaAtualizada, true));
+      painel.append(mudanca);
+      const saida = criar("section", "map-list-output");
+      saida.append(criar("span", "eyebrow", "LISTAGEM · ATIVOS ORDENADOS"));
+      dados.contasAtivas.forEach(usuario => saida.append(usuarioAssociacao(usuario)));
+      painel.append(saida, criar("p", "visual-caption", "A listagem ordenada é uma saída do repositório; não representa a ordem interna do HashMap."));
+    }
+    return painel;
+  }
+
+  const COORDENADAS_GRAFO = {
+    autenticacao: {x:30, y:112}, pedidos: {x:260, y:22},
+    pagamentos: {x:260, y:202}, notificacoes: {x:490, y:112}
+  };
+
+  function nomeServico(nome) {
+    return ({autenticacao:"Autenticação",pedidos:"Pedidos",pagamentos:"Pagamentos",
+      notificacoes:"Notificações"})[nome] || nome.replaceAll("_", " ");
+  }
+
+  function desenharGrafo(elementoSvg, dados, etapa, modo) {
+    const ns = "http://www.w3.org/2000/svg";
+    const definicoes = document.createElementNS(ns, "defs");
+    const marcador = document.createElementNS(ns, "marker");
+    marcador.setAttribute("id", "seta-dependencia");
+    marcador.setAttribute("viewBox", "0 0 10 10");
+    marcador.setAttribute("refX", "9"); marcador.setAttribute("refY", "5");
+    marcador.setAttribute("markerWidth", "7"); marcador.setAttribute("markerHeight", "7");
+    marcador.setAttribute("orient", "auto-start-reverse");
+    const ponta = document.createElementNS(ns, "path");
+    ponta.setAttribute("d", "M 0 0 L 10 5 L 0 10 z");
+    ponta.setAttribute("fill", "currentColor"); marcador.append(ponta); definicoes.append(marcador);
+    elementoSvg.replaceChildren(definicoes);
+    for (const aresta of dados.arestas) {
+      const origem = aresta.fornecedor.nome, destino = aresta.consumidor.nome;
+      const a = COORDENADAS_GRAFO[origem], b = COORDENADAS_GRAFO[destino];
+      if (!a || !b) continue;
+      const caminho = document.createElementNS(ns, "path");
+      const origemEsquerda = a.x < b.x;
+      const xInicio = a.x + (origemEsquerda ? 170 : 0), xFim = b.x + (origemEsquerda ? 0 : 170);
+      const yInicio = a.y + 32, yFim = b.y + 32;
+      caminho.setAttribute("d", `M ${xInicio} ${yInicio} C ${(xInicio+xFim)/2} ${yInicio}, ${(xInicio+xFim)/2} ${yFim}, ${xFim} ${yFim}`);
+      caminho.setAttribute("class", "dependency-edge");
+      caminho.setAttribute("marker-end", "url(#seta-dependencia)");
+      elementoSvg.append(caminho);
+    }
+    const origemBusca = etapa === 3 ? "notificacoes" : "autenticacao";
+    const visitados = etapa === 2
+      ? [origemBusca, ...(modo === "dfs" ? dados.buscaProfundidade : dados.buscaLargura).map(servico => servico.nome)]
+      : etapa === 3 ? [origemBusca] : [];
+    for (const servico of dados.vertices) {
+      const posicao = COORDENADAS_GRAFO[servico.nome];
+      if (!posicao) continue;
+      const grupo = document.createElementNS(ns, "g");
+      const ordem = visitados.indexOf(servico.nome);
+      grupo.setAttribute("class", "dependency-node" + (ordem >= 0 ? " visited" : "") +
+        (servico.nome === origemBusca && etapa > 1 ? " origin" : ""));
+      const caixa = document.createElementNS(ns, "rect");
+      caixa.setAttribute("x", posicao.x); caixa.setAttribute("y", posicao.y);
+      caixa.setAttribute("width", "170"); caixa.setAttribute("height", "64"); caixa.setAttribute("rx", "10");
+      const nome = document.createElementNS(ns, "text");
+      nome.setAttribute("x", posicao.x + 12); nome.setAttribute("y", posicao.y + 25);
+      nome.setAttribute("class", "dependency-name");
+      nome.textContent = nomeServico(servico.nome);
+      const equipe = document.createElementNS(ns, "text");
+      equipe.setAttribute("x", posicao.x + 12); equipe.setAttribute("y", posicao.y + 46);
+      equipe.setAttribute("class", "dependency-team"); equipe.textContent = servico.equipe;
+      grupo.append(caixa, nome, equipe);
+      if (ordem >= 0 && etapa === 2) {
+        const numero = document.createElementNS(ns, "text");
+        numero.setAttribute("x", posicao.x + 153); numero.setAttribute("y", posicao.y + 20);
+        numero.setAttribute("class", "dependency-order"); numero.textContent = String(ordem + 1);
+        grupo.append(numero);
+      }
+      elementoSvg.append(grupo);
+    }
+  }
+
+  function grafo(etapa, dados) {
+    const painel = criar("section", "collection-visual graph-visual");
+    painel.append(titulo(etapa === 1 ? "RELAÇÕES · DIREÇÃO DAS ARESTAS" : etapa === 2 ? "TRAVESSIA · ORDEM DE VISITA" : "ORIGEM · NOTIFICAÇÕES",
+      etapa === 1 ? "A seta vai do serviço fornecedor para quem depende dele." :
+        etapa === 2 ? "BFS e DFS visitam os mesmos serviços em ordens diferentes." :
+          "As setas chegam a notificações; nenhuma sai dela para os fornecedores."));
+    const quadro = criar("div", "dependency-board");
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("viewBox", "0 0 680 280"); svg.setAttribute("role", "img");
+    svg.setAttribute("aria-label", "Grafo direcionado de dependências entre serviços");
+    quadro.append(svg);
+    painel.append(quadro);
+    let modo = "bfs";
+    const sequencia = criar("div", "graph-sequence");
+    const atualizar = () => {
+      desenharGrafo(svg, dados, etapa, modo);
+      const ordem = etapa === 1 ? [] : etapa === 2
+        ? ["autenticacao", ...(modo === "dfs" ? dados.buscaProfundidade : dados.buscaLargura).map(servico => servico.nome)]
+        : ["notificacoes"];
+      const passos = [];
+      ordem.forEach((nome, indice) => {
+        const servico = dados.vertices.find(item => item.nome === nome);
+        const no = criar("span", "graph-visit" + (indice === 0 ? " origin" : ""));
+        no.append(criar("small", "", indice === 0 ? "ORIGEM" : "VISITA " + indice),
+          criar("strong", "", nomeServico(nome)));
+        passos.push(no);
+        if (indice < ordem.length - 1) passos.push(criar("span", "graph-visit-arrow", "→"));
+      });
+      sequencia.replaceChildren(...passos);
+    };
+    if (etapa === 2) {
+      const acoes = criar("div", "graph-modes");
+      for (const [id, rotulo] of [["bfs", "BFS · por camadas"], ["dfs", "DFS · por caminho"]]) {
+        const botao = criar("button", "graph-mode", rotulo);
+        botao.setAttribute("aria-pressed", String(modo === id));
+        botao.onclick = () => {
+          modo = id;
+          acoes.querySelectorAll("button").forEach(item => item.setAttribute("aria-pressed", String(item === botao)));
+          atualizar();
+        };
+        acoes.append(botao);
+      }
+      painel.append(acoes);
+    }
+    painel.append(sequencia);
+    atualizar();
+    painel.append(criar("p", "visual-caption", etapa === 3
+      ? "A busca parte de notificações e segue apenas as setas de saída. Como não há nenhuma, zero fornecedores são alcançados."
+      : etapa === 2
+        ? "Os números nos nós e a sequência abaixo vêm dos iteradores do JGraphT nesta execução."
+        : "Cada aresta do desenho veio do grafo direcionado construído pelo backend."));
+    return painel;
+  }
+
   let paginas;
   let raiz;
   let selecionada;
@@ -299,6 +574,10 @@ const Visuais = (() => {
     lista(numero, etapa, dados) {
       if (!dados || etapa === 0) return null;
       if (numero === 1) return backlog(etapa, dados);
+      if (numero === 2) return fila(etapa, dados);
+      if (numero === 3) return pilha(etapa, dados);
+      if (numero === 4) return mapa(etapa, dados);
+      if (numero === 6) return grafo(etapa, dados);
       if (numero === 9) return arquivo(etapa, dados);
       if (numero === 11) return banco(etapa, dados);
       return null;

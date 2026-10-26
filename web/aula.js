@@ -21,9 +21,9 @@ const Aula = (() => {
     return svg;
   }
 
-  function fluxo(passos, decisao) {
+  function fluxo(passos, decisao, legenda = "COMO OS DADOS SE TRANSFORMAM") {
     const figura = no("figure", "flowchart");
-    figura.append(no("figcaption", "eyebrow", "COMO OS DADOS SE TRANSFORMAM"));
+    figura.append(no("figcaption", "eyebrow", legenda));
     const trilha = no("ol", "flow-track");
     passos.forEach((passo, indice) => {
       if (indice) trilha.append(seta());
@@ -112,7 +112,7 @@ const Aula = (() => {
     painel.append(fluxo([
       {rotulo:"Entrada",texto:conteudo.entrada,tipo:"input"},
       {rotulo:conteudo.estrutura,texto:conteudo.acao,tipo:"process"},
-      {rotulo:"Saída",texto:conteudo.saida,tipo:"output"}
+      {rotulo:"Resumo",texto:conteudo.saida,tipo:"output"}
     ], conteudo.decisao));
     const motivo = no("section", "why-choice");
     motivo.append(no("strong", "", "Por que esta operação vem agora?"), no("p", "", conteudo.porQue));
@@ -123,6 +123,18 @@ const Aula = (() => {
       conteudo.aprofundamento.forEach(texto => detalhes.append(no("p", "", texto)));
       painel.append(detalhes);
     }
+    return painel;
+  }
+
+  function previsao(conteudo, revelar) {
+    const painel = no("section", "prediction-prompt");
+    painel.append(no("div", "eyebrow", "PENSE PRIMEIRO"), fluxo([
+        {rotulo:"Entrada",texto:conteudo.entrada,tipo:"input"},
+        {rotulo:conteudo.estrutura,texto:conteudo.acao,tipo:"process"}
+      ], null, "ENTRADA E OPERAÇÃO"));
+    const botao = no("button", "primary", "Revelar explicação e resultado →");
+    botao.onclick = revelar;
+    painel.append(botao);
     return painel;
   }
 
@@ -150,5 +162,5 @@ const Aula = (() => {
     return painel;
   }
 
-  return {inicio, etapa, fim};
+  return {inicio, etapa, previsao, fim};
 })();
