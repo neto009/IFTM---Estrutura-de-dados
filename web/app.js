@@ -214,6 +214,8 @@ async function acompanharCodigo(numero) {
   porId("classe-ativa").textContent=referencias.map(r=>r.arquivo.split("/").pop()+(r.simbolo?" · "+r.simbolo:"")).join("  |  ");
   fontesAtuais=[];
   porId("fontes-seletor").replaceChildren();
+  porId("fonte-local-tipo").textContent="Pacote / módulo";
+  porId("fonte-local-nome").textContent="Identificando…";
   porId("fonte-path").textContent=referencias[0].arquivo;
   porId("codigo-descricao").textContent="Localizando as linhas desta etapa…";
   porId("fonte-trecho").textContent="Carregando o trecho da classe…";
@@ -235,9 +237,18 @@ function renderizarCodigo() {
   const fonte=fontesAtuais[indiceFonte];
   if(!fonte)return;
   const completo=porId("classe-completa").checked;
-  porId("classe-ativa").textContent=fonte.arquivo.split("/").pop()+(fonte.simbolo?" · "+fonte.simbolo:"")+
-    (fonte.linhaFoco?" · linha "+fonte.linhaFoco:"");
-  porId("codigo-titulo").textContent=fonte.arquivo.split("/").pop()+" · "+fonte.simbolo;
+  const nomeArquivo=fonte.arquivo.split("/").pop();
+  const localTipo=fonte.localTipo||"Local";
+  const localNome=fonte.localNome||fonte.arquivo;
+  porId("fonte-local-tipo").textContent=localTipo;
+  porId("fonte-local-nome").textContent=localNome;
+  porId("classe-ativa").textContent=[
+    localTipo+" "+localNome,
+    nomeArquivo,
+    fonte.simbolo,
+    fonte.linhaFoco?"linha "+fonte.linhaFoco:""
+  ].filter(Boolean).join(" · ");
+  porId("codigo-titulo").textContent=nomeArquivo+" · "+fonte.simbolo;
   porId("fonte-path").textContent=fonte.arquivo;
   porId("codigo-descricao").textContent=fonte.linhaFoco
     ? "Linha "+fonte.linhaFoco+" destacada: operação principal desta etapa. Trecho real entre as linhas "+fonte.inicio+" e "+fonte.fim+"."

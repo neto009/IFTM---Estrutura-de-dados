@@ -27,6 +27,16 @@ def ler_fonte(referencia):
     arquivo = referencia["arquivo"]
     codigo = (RAIZ / arquivo).read_text(encoding="utf-8")
     linhas = codigo.splitlines()
+    if arquivo.endswith(".java"):
+        declaracao_pacote = re.search(r"^\s*package\s+([\w.$]+)\s*;", codigo, re.MULTILINE)
+        local_tipo = "Pacote"
+        local_nome = declaracao_pacote.group(1) if declaracao_pacote else "(pacote padrão)"
+    elif arquivo.endswith(".py"):
+        local_tipo = "Módulo"
+        local_nome = Path(arquivo).with_suffix("").as_posix().replace("/", ".")
+    else:
+        local_tipo = "Arquivo"
+        local_nome = arquivo
     simbolo = referencia.get("simbolo")
     inicio, fim = 0, len(linhas)
     if simbolo:
@@ -70,6 +80,7 @@ def ler_fonte(referencia):
             raise ValueError(f"O destaque {foco!r} deve corresponder a uma linha em {arquivo}.")
         linha_foco = correspondencias[0]
     return {"arquivo": arquivo, "simbolo": simbolo or "Visão da classe",
+            "localTipo": local_tipo, "localNome": local_nome,
             "inicio": inicio + 1, "fim": fim, "trecho": linhas[inicio:fim], "codigo": codigo,
             "linhaFoco": linha_foco}
 
